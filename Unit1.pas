@@ -786,20 +786,10 @@ end;
 
 function GetBoardMoves(const Board: TBoard): UInt64;
 var
-  col, r, bit: Integer;
-  res: UInt64;
+  Occupied: UInt64;
 begin
-  res := 0;
-  for col := 1 to 8 do
-  begin
-    r := GetDropRow(Board, col);
-    if r > 0 then
-    begin
-       bit := (r - 1) * 8 + (col - 1);
-       res := res or (UInt64(1) shl bit);
-    end;
-  end;
-  Result := res;
+  Occupied := Board.Red or Board.Black;
+  Result := (not Occupied) and (ROW8_MASK or (Occupied shr 8));
 end;
 
 procedure ApplyBoardMove(var Own: UInt64; Move: UInt64; out Flipped: UInt64);
@@ -2517,8 +2507,6 @@ begin
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
     value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep);
-    if GetCurrentThreadID = MainThreadID then
-      CallSyncUpdateAIUI('', '', IntToStr(value) + ':' + MoveArrayToThinkStep(aithinkstep), False, True);
 
     if value > bestvalue then
     begin
@@ -2893,8 +2881,6 @@ begin
     inc(current_path.Count);
 
     value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path);
-    if GetCurrentThreadID = MainThreadID then
-      CallSyncUpdateAIUI('', '', MoveToThinkStep(moves.Moves[a]) + ' ' + IntToStr(value), False, True);
     if value > bestvalue then
     begin
       bestvalue := value;

@@ -1,0 +1,2 @@
+Language Context: This is a Free Pascal / Lazarus project.
+Syntax Rules: Always use standard Object Pascal syntax. When referencing class methods in your thoughts or searches, strictly use the dot notation (e.g., ClassName.MethodName), NEVER the Javadoc hash notation (ClassName#MethodName).

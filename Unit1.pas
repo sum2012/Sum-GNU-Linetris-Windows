@@ -262,7 +262,7 @@ type
       procedure BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer);
       procedure Updateboard;
       function AI(Aboard:Tboard;ComputerIsRed:Boolean):string;
-      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True):integer;
       function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
       procedure BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
     function InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
@@ -2533,7 +2533,7 @@ begin
   Result := bestvalue;
 end;
 
-function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean):integer;
 var a,b,bestvalue, value, best_a_move:integer;
     moves: TMoveArray;
     tempboard: Tboard;
@@ -2583,6 +2583,20 @@ begin
   begin
     Result := EvaluateScore(Aboard, SideIsRed);
     exit;
+  end;
+
+  // Null Move Pruning
+  if AllowNull and (depth >= 3) then
+  begin
+    tempboard := Aboard;
+    tempboard.Hash := tempboard.Hash xor FZobristSide;
+    oldaithinkstep := aithinkstep;
+    value := -MinMax(tempboard, not SideIsRed, depth - 3, -beta, -beta + 1, oldaithinkstep, False);
+    if value >= beta then
+    begin
+      StoreTT(h, depth, value, TT_LOWERBOUND, -1);
+      Exit(value);
+    end;
   end;
 
   bestvalue := -INF;

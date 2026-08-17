@@ -262,12 +262,12 @@ type
       procedure BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer);
       procedure Updateboard;
       function AI(Aboard:Tboard;ComputerIsRed:Boolean):string;
-      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True):integer;
-      function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True; Ply: Integer = 0):integer;
+      function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       procedure BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
     function InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
     function EvaluateScore(const Aboard:Tboard;const SideIsRed:Boolean):Integer;
-      function MinMaxStart(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+      function MinMaxStart(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       Procedure Scoresort(var scorelist:Tstringlist;var stepno:Tstringlist);
       procedure FastScoresort(var moves: TMoveArray; var scores: array of Integer);
       function GetMoveHeuristic(move: Integer; {%H-}SideIsRed: Boolean): Integer;
@@ -1275,7 +1275,7 @@ begin
 
   a := 0; b := 0;
   score(board,a,b);
-  if a+b + strToint(Endgamedepth.text) >= 40 then
+  if a+b + strToint(Endgamedepth.text) >= 60 then
   begin
     tempdepth:= 64-a-b;
     Result:=test(tempdepth,true,True);
@@ -1359,9 +1359,9 @@ begin
     end;
 
     if  mutidepth > 5 then
-      mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path)
+      mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
     else
-      mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path);
+      mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
   end
   else begin
      path.Moves[1] := -1; // PASS
@@ -1372,7 +1372,7 @@ begin
      Else
        Blackboardupdate(Aboard,move1);
      Aboard.Hash := Aboard.Hash xor FZobristSide;
-     mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path);
+     mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, True, 2);
   end;
 
   system.EnterCriticalsection(MyCriticalSection);
@@ -2389,7 +2389,7 @@ begin
 end;
 
 
-function TForm1.MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+function TForm1.MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer):integer;
 var a,b,bestvalue, value, best_a_move, oldAlpha:integer; moves: TMoveArray; tempboard:Tboard;
     oldaithinkstep, bestaithinkstep: TMoveArray;
     scores: array[0..63] of Integer;
@@ -2407,12 +2407,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 + depth else Result := -2000 - depth;
+    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 - depth else Result := 2000 + depth;
+    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
     exit;
   end;
 
@@ -2485,7 +2485,7 @@ begin
     aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
     inc(aithinkstep.Count);
     Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep);
+    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, True, Ply + 1);
     StoreTT(h, depth, value, TT_EXACT, -1);
     Result := value;
     exit;
@@ -2506,7 +2506,7 @@ begin
     if SideIsRed then RedboardUpdate(Aboard, moves.Moves[a])
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
-    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep);
+    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, True, Ply + 1);
 
     if value > bestvalue then
     begin
@@ -2533,7 +2533,7 @@ begin
   Result := bestvalue;
 end;
 
-function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean):integer;
+function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean; Ply: Integer):integer;
 var a,b,bestvalue, value, best_a_move:integer;
     moves: TMoveArray;
     tempboard: Tboard;
@@ -2551,12 +2551,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 + depth else Result := -2000 - depth;
+    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 - depth else Result := 2000 + depth;
+    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
     exit;
   end;
 
@@ -2591,7 +2591,7 @@ begin
     tempboard := Aboard;
     tempboard.Hash := tempboard.Hash xor FZobristSide;
     oldaithinkstep := aithinkstep;
-    value := -MinMax(tempboard, not SideIsRed, depth - 3, -beta, -beta + 1, oldaithinkstep, False);
+    value := -MinMax(tempboard, not SideIsRed, depth - 3, -beta, -beta + 1, oldaithinkstep, False, Ply + 1);
     if value >= beta then
     begin
       StoreTT(h, depth, value, TT_LOWERBOUND, -1);
@@ -2650,7 +2650,7 @@ begin
     aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
     inc(aithinkstep.Count);
     Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep);
+    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, True, Ply + 1);
     StoreTT(h, depth, value, TT_EXACT, -1);
     Result := value;
     exit;
@@ -2669,7 +2669,7 @@ begin
     if SideIsRed then RedboardUpdate(Aboard, moves.Moves[a])
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
-    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep);
+    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, True, Ply + 1);
 
     if value > bestvalue then
     begin
@@ -2735,10 +2735,10 @@ begin
 
      if (a + b < 46) and (c >= 4) and (Realdepth > 5) then
      begin
-       a:=minMaxStart(Aboard,ComputerIsRed,Realdepth, -INF, INF, thinkstep);
+       a:=minMaxStart(Aboard,ComputerIsRed,Realdepth, -INF, INF, thinkstep, 0);
      end
      else
-       a:=minMaxRandom(Aboard,ComputerIsRed,Realdepth, -INF, INF, thinkstep);
+       a:=minMaxRandom(Aboard,ComputerIsRed,Realdepth, -INF, INF, thinkstep, 0);
   redlist.Clear;
   blacklist.Clear;
   CallSyncUpdateAIUI(intTostr(A), '', MoveArrayToThinkStep(thinkstep), False, False);
@@ -2775,7 +2775,7 @@ end;
 
 
 
-function TForm1.MinMaxStart(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray):integer;
+function TForm1.MinMaxStart(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer):integer;
 var a,b,bestvalue, value, best_a_move, oldAlpha:integer; moves: TMoveArray; tempboard:Tboard;
     scores: array[0..63] of Integer;
     best_paths: array of TMoveArray;
@@ -2791,12 +2791,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 + depth else Result := -2000 - depth;
+    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 - depth else Result := 2000 + depth;
+    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
     exit;
   end;
 
@@ -2877,7 +2877,7 @@ begin
     current_path.Moves[current_path.Count] := -1; // PASS
     inc(current_path.Count);
     Aboard.Hash := Aboard.Hash xor FZobristSide;
-    Result := -MinMaxStart(Aboard, Not SideIsRed, depth, -beta, -alpha, current_path);
+    Result := -MinMaxStart(Aboard, Not SideIsRed, depth, -beta, -alpha, current_path, Ply + 1);
     aithinkstep := current_path;
     exit;
   end;
@@ -2894,7 +2894,7 @@ begin
     current_path.Moves[current_path.Count] := moves.Moves[a];
     inc(current_path.Count);
 
-    value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path);
+    value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path, True, Ply + 1);
     if value > bestvalue then
     begin
       bestvalue := value;
@@ -3107,6 +3107,7 @@ var
   red_win, black_win: Boolean;
   temp: UInt64;
   red_3, red_2, black_3, black_2: Integer;
+  red_v_bonus, black_v_bonus: Integer;
 begin
   red_win := CheckWin(Aboard.Red);
   black_win := CheckWin(Aboard.Black);
@@ -3125,7 +3126,7 @@ begin
   // Sum GNU Linetris evaluation: prioritize line formation.
   // We reward 3-in-a-row and 2-in-a-row.
 
-  // Red 3-in-a-row
+  // Red evaluation
   red_3 := 0;
   temp := Aboard.Red and (Aboard.Red shl 8) and (Aboard.Red shl 16);
   red_3 := red_3 + PopCount(temp);
@@ -3136,7 +3137,20 @@ begin
   temp := Aboard.Red and (Aboard.Red shl 7) and (Aboard.Red shl 14) and $3F3F3F3F3F3F3F3F;
   red_3 := red_3 + PopCount(temp);
 
-  // Black 3-in-a-row
+  red_2 := 0;
+  temp := Aboard.Red and (Aboard.Red shl 8);
+  red_2 := red_2 + PopCount(temp);
+  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
+  red_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
+
+  temp := Aboard.Red and (Aboard.Red shl 1) and $FEFEFEFEFEFEFEFE;
+  red_2 := red_2 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 9) and $FEFEFEFEFEFEFEFE;
+  red_2 := red_2 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 7) and $7F7F7F7F7F7F7F7F;
+  red_2 := red_2 + PopCount(temp);
+
+  // Black evaluation
   black_3 := 0;
   temp := Aboard.Black and (Aboard.Black shl 8) and (Aboard.Black shl 16);
   black_3 := black_3 + PopCount(temp);
@@ -3147,21 +3161,12 @@ begin
   temp := Aboard.Black and (Aboard.Black shl 7) and (Aboard.Black shl 14) and $3F3F3F3F3F3F3F3F;
   black_3 := black_3 + PopCount(temp);
 
-  // Red 2-in-a-row
-  red_2 := 0;
-  temp := Aboard.Red and (Aboard.Red shl 8);
-  red_2 := red_2 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 1) and $FEFEFEFEFEFEFEFE;
-  red_2 := red_2 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 9) and $FEFEFEFEFEFEFEFE;
-  red_2 := red_2 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 7) and $7F7F7F7F7F7F7F7F;
-  red_2 := red_2 + PopCount(temp);
-
-  // Black 2-in-a-row
   black_2 := 0;
   temp := Aboard.Black and (Aboard.Black shl 8);
   black_2 := black_2 + PopCount(temp);
+  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
+  black_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
+
   temp := Aboard.Black and (Aboard.Black shl 1) and $FEFEFEFEFEFEFEFE;
   black_2 := black_2 + PopCount(temp);
   temp := Aboard.Black and (Aboard.Black shl 9) and $FEFEFEFEFEFEFEFE;
@@ -3170,10 +3175,11 @@ begin
   black_2 := black_2 + PopCount(temp);
 
   if SideIsRed then
-    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10
+    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20
   else
-    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10;
+    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20;
 end;
+
 
 function Tform1.EvaluateScore(const Aboard:Tboard;const SideIsRed:Boolean):Integer;
 begin

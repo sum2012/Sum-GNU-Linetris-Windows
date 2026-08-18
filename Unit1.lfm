@@ -1,16 +1,16 @@
 object Form1: TForm1
   Left = 363
-  Height = 863
+  Height = 719
   Top = 50
-  Width = 1150
+  Width = 958
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Sum GNU Linetris v0.9'
-  ClientHeight = 863
-  ClientWidth = 1150
+  ClientHeight = 719
+  ClientWidth = 958
   Color = clBtnFace
-  DesignTimePPI = 144
+  DesignTimePPI = 120
   Font.Color = clWindowText
-  Font.Height = -17
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Menu = MainMenu1
   LCLVersion = '4.8.0.0'
@@ -19,10 +19,10 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   object apple: TImage
-    Left = 184
-    Height = 483
-    Top = 48
-    Width = 579
+    Left = 153
+    Height = 402
+    Top = 40
+    Width = 482
     Picture.Data = {
       07544269746D6170CEC20500424DCEC205000000000036000000280000008701
       000041010000010018000000000098C205000000000000000000000000000000
@@ -11827,10 +11827,10 @@ object Form1: TForm1
     Stretch = True
   end
   object Chess2: TImage
-    Left = 878
-    Height = 44
-    Top = 504
-    Width = 51
+    Left = 732
+    Height = 37
+    Top = 420
+    Width = 42
     Picture.Data = {
       07544269746D6170E6160000424DE61600000000000036000000280000002C00
       00002C0000000100180000000000B01600000000000000000000000000000000
@@ -12021,10 +12021,10 @@ object Form1: TForm1
     Visible = False
   end
   object Chess1: TImage
-    Left = 814
-    Height = 44
-    Top = 438
-    Width = 51
+    Left = 678
+    Height = 37
+    Top = 365
+    Width = 42
     Picture.Data = {
       07544269746D6170E6160000424DE61600000000000036000000280000002C00
       00002C0000000100180000000000B01600000000000000000000000000000000
@@ -12215,10 +12215,10 @@ object Form1: TForm1
     Visible = False
   end
   object RedChess: TImage
-    Left = 808
-    Height = 44
-    Top = 68
-    Width = 51
+    Left = 673
+    Height = 37
+    Top = 57
+    Width = 42
     Picture.Data = {
       07544269746D6170FE0B0000424DFE0B00000000000036000000280000002200
       00001D0000000100180000000000C80B0000C40E0000C40E0000000000000000
@@ -12322,10 +12322,10 @@ object Form1: TForm1
     OnClick = RedChessClick
   end
   object BlackChess: TImage
-    Left = 819
-    Height = 44
-    Top = 15
-    Width = 46
+    Left = 682
+    Height = 37
+    Top = 12
+    Width = 38
     Picture.Data = {
       07544269746D6170FE0B0000424DFE0B00000000000036000000280000002200
       00001D0000000100180000000000C80B0000C40E0000C40E0000000000000000
@@ -12429,608 +12429,608 @@ object Form1: TForm1
     OnClick = BlackChessClick
   end
   object Image1: TImage
-    Left = 190
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image2: TImage
-    Left = 264
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image3: TImage
-    Left = 334
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image4: TImage
-    Left = 405
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image5: TImage
-    Left = 477
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image6: TImage
-    Left = 550
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image7: TImage
-    Left = 622
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image8: TImage
-    Left = 704
-    Height = 44
-    Top = 60
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 50
+    Width = 42
     Stretch = True
   end
   object Image9: TImage
-    Left = 190
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image10: TImage
-    Left = 264
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image11: TImage
-    Left = 334
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image12: TImage
-    Left = 405
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image13: TImage
-    Left = 477
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image14: TImage
-    Left = 550
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image15: TImage
-    Left = 622
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image16: TImage
-    Left = 704
-    Height = 44
-    Top = 120
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 100
+    Width = 42
     Stretch = True
   end
   object Image17: TImage
-    Left = 190
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image18: TImage
-    Left = 264
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image19: TImage
-    Left = 334
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image20: TImage
-    Left = 405
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image21: TImage
-    Left = 477
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image22: TImage
-    Left = 550
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image23: TImage
-    Left = 622
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image24: TImage
-    Left = 704
-    Height = 44
-    Top = 180
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 150
+    Width = 42
     Stretch = True
   end
   object Image25: TImage
-    Left = 190
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image26: TImage
-    Left = 264
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image27: TImage
-    Left = 334
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image28: TImage
-    Left = 405
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image29: TImage
-    Left = 478
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image30: TImage
-    Left = 550
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image31: TImage
-    Left = 622
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image32: TImage
-    Left = 704
-    Height = 44
-    Top = 236
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 197
+    Width = 42
     Stretch = True
   end
   object Image33: TImage
-    Left = 190
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image34: TImage
-    Left = 264
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image35: TImage
-    Left = 334
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image36: TImage
-    Left = 405
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image37: TImage
-    Left = 477
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image38: TImage
-    Left = 550
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image39: TImage
-    Left = 622
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image40: TImage
-    Left = 704
-    Height = 44
-    Top = 294
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 245
+    Width = 42
     Stretch = True
   end
   object Image41: TImage
-    Left = 190
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image42: TImage
-    Left = 264
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image43: TImage
-    Left = 334
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image44: TImage
-    Left = 405
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image45: TImage
-    Left = 477
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image46: TImage
-    Left = 550
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image47: TImage
-    Left = 622
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image48: TImage
-    Left = 704
-    Height = 44
-    Top = 351
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 292
+    Width = 42
     Stretch = True
   end
   object Image49: TImage
-    Left = 190
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image50: TImage
-    Left = 264
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image51: TImage
-    Left = 334
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image52: TImage
-    Left = 405
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image53: TImage
-    Left = 477
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image54: TImage
-    Left = 550
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image55: TImage
-    Left = 622
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image56: TImage
-    Left = 704
-    Height = 44
-    Top = 410
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 342
+    Width = 42
     Stretch = True
   end
   object Image57: TImage
-    Left = 190
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 158
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image58: TImage
-    Left = 264
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 220
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image59: TImage
-    Left = 334
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 278
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image60: TImage
-    Left = 405
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 338
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image61: TImage
-    Left = 477
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 398
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image62: TImage
-    Left = 550
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 458
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image63: TImage
-    Left = 622
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 518
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Image64: TImage
-    Left = 704
-    Height = 44
-    Top = 472
-    Width = 51
+    Left = 587
+    Height = 37
+    Top = 393
+    Width = 42
     Stretch = True
   end
   object Label1: TLabel
-    Left = 792
-    Height = 20
-    Top = 216
-    Width = 30
+    Left = 660
+    Height = 16
+    Top = 180
+    Width = 26
     Caption = 'Red'
     ParentColor = False
   end
   object Label2: TLabel
-    Left = 792
-    Height = 20
-    Top = 288
-    Width = 39
+    Left = 660
+    Height = 16
+    Top = 240
+    Width = 34
     Caption = 'Black'
     ParentColor = False
   end
   object Label3: TLabel
-    Left = 876
-    Height = 20
-    Top = 216
-    Width = 9
+    Left = 730
+    Height = 16
+    Top = 180
+    Width = 7
     Caption = '2'
     ParentColor = False
   end
   object Label4: TLabel
-    Left = 878
-    Height = 20
-    Top = 290
-    Width = 9
+    Left = 732
+    Height = 16
+    Top = 242
+    Width = 7
     Caption = '2'
     ParentColor = False
   end
   object Label5: TLabel
-    Left = 888
-    Height = 20
-    Top = 600
-    Width = 94
+    Left = 740
+    Height = 16
+    Top = 500
+    Width = 79
     Caption = 'Nornal Depth'
     ParentColor = False
   end
   object Label6: TLabel
-    Left = 888
-    Height = 20
-    Top = 648
-    Width = 117
+    Left = 740
+    Height = 16
+    Top = 540
+    Width = 98
     Caption = 'Endgame Depth'
     ParentColor = False
   end
   object Label7: TLabel
-    Left = 308
-    Height = 20
-    Top = 552
-    Width = 77
+    Left = 257
+    Height = 16
+    Top = 460
+    Width = 61
     Caption = 'AI think list'
     ParentColor = False
   end
   object ScoreLabel: TLabel
-    Left = 48
-    Height = 20
-    Top = 552
-    Width = 58
+    Left = 40
+    Height = 16
+    Top = 460
+    Width = 48
     Caption = 'AIScore'
     ParentColor = False
   end
   object AIDisplayScoreLabel: TLabel
-    Left = 144
-    Height = 20
-    Top = 552
-    Width = 9
+    Left = 120
+    Height = 16
+    Top = 460
+    Width = 7
     Caption = '0'
     ParentColor = False
   end
   object AIUsedTimeLabel: TLabel
-    Left = 200
-    Height = 20
-    Top = 552
-    Width = 59
+    Left = 167
+    Height = 16
+    Top = 460
+    Width = 51
     Caption = 'Time: 0s'
     ParentColor = False
   end
   object Redlabel: TLabel
-    Left = 792
-    Height = 20
-    Top = 120
-    Width = 52
+    Left = 660
+    Height = 16
+    Top = 100
+    Width = 43
     Caption = 'Human'
     ParentColor = False
   end
   object BlackLabel: TLabel
-    Left = 792
-    Height = 20
-    Top = 394
-    Width = 70
+    Left = 660
+    Height = 16
+    Top = 328
+    Width = 58
     Caption = 'Computer'
     ParentColor = False
   end
   object StepListBox: TListBox
-    Left = 926
-    Height = 422
-    Top = 60
-    Width = 182
+    Left = 772
+    Height = 352
+    Top = 50
+    Width = 152
     ItemHeight = 0
     TabOrder = 0
     OnClick = StepListBoxClick
   end
   object CopyToClipboardButton: TButton
-    Left = 936
-    Height = 38
-    Top = 504
-    Width = 158
+    Left = 780
+    Height = 32
+    Top = 420
+    Width = 132
     Caption = 'Copy To Clipboard'
     TabOrder = 1
     OnClick = CopyToClipboardButtonClick
   end
   object AiListBox: TListBox
-    Left = 50
-    Height = 146
-    Top = 588
-    Width = 776
+    Left = 42
+    Height = 122
+    Top = 490
+    Width = 647
     ItemHeight = 0
     TabOrder = 5
   end
   object NornalDepth: TEdit
-    Left = 1020
-    Height = 28
-    Top = 604
-    Width = 62
+    Left = 850
+    Height = 24
+    Top = 503
+    Width = 52
     TabOrder = 2
-    Text = '8'
+    Text = '14'
     OnChange = NornalDepthChange
   end
   object EndgameDepth: TEdit
-    Left = 1020
-    Height = 28
-    Top = 645
-    Width = 62
+    Left = 850
+    Height = 24
+    Top = 538
+    Width = 52
     TabOrder = 3
-    Text = '20'
+    Text = '14'
   end
   object ThinkstepEdit: TEdit
-    Left = 48
-    Height = 28
-    Top = 744
-    Width = 777
+    Left = 40
+    Height = 24
+    Top = 620
+    Width = 648
     ReadOnly = True
     TabOrder = 4
   end
   object Timer1: TTimer
     OnTimer = Timer1Timer
-    Left = 840
-    Top = 504
+    Left = 700
+    Top = 420
   end
   object MainMenu1: TMainMenu
-    Left = 840
-    Top = 549
+    Left = 700
+    Top = 458
     object Closebutton: TMenuItem
       Caption = 'Close'
       OnClick = ClosebuttonClick
@@ -13139,11 +13139,11 @@ object Form1: TForm1
     DefaultExt = '.txt'
     FileName = 'new.txt'
     Filter = 'Apple game files (*.txt)|*.TXT'
-    Left = 888
-    Top = 12
+    Left = 740
+    Top = 10
   end
   object OpenDialog1: TOpenDialog
-    Left = 852
-    Top = 156
+    Left = 710
+    Top = 130
   end
 end

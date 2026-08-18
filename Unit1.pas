@@ -258,8 +258,8 @@ type
 //      function MakeBlackMoveAI(const ABoard:Tboard):TStringList;
       procedure MakeClick(t:Tstringlist;Player:string);
       procedure Score(const Aboard:Tboard;var RedScore,BlackScore:integer);
-      procedure RedBoardUpdate(var Aboard:Tboard;LastChess:Integer);
-      procedure BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer);
+      function RedBoardUpdate(var Aboard:Tboard;LastChess:Integer): Boolean;
+      function BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer): Boolean;
       procedure Updateboard;
       function AI(Aboard:Tboard;ComputerIsRed:Boolean):string;
       function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True; Ply: Integer = 0):integer;
@@ -798,6 +798,98 @@ begin
   Own := Own or Move;
 end;
 
+function Tform1.InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
+var
+  red_win, black_win: Boolean;
+  temp: UInt64;
+  red_3, red_2, black_3, black_2: Integer;
+  red_v_bonus, black_v_bonus: Integer;
+begin
+  red_win := CheckWin(Aboard.Red);
+  black_win := CheckWin(Aboard.Black);
+
+  if red_win then
+  begin
+     if SideIsRed then Result := 2000 else Result := -2000;
+     Exit;
+  end;
+  if black_win then
+  begin
+     if SideIsRed then Result := -2000 else Result := 2000;
+     Exit;
+  end;
+
+  // Sum GNU Linetris evaluation: prioritize line formation.
+  // We reward 3-in-a-row and 2-in-a-row.
+
+  // Red evaluation
+  red_3 := 0;
+  temp := Aboard.Red and (Aboard.Red shl 8) and (Aboard.Red shl 16);
+  red_3 := red_3 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 1) and (Aboard.Red shl 2) and $FCFCFCFCFCFCFCFC;
+  red_3 := red_3 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 9) and (Aboard.Red shl 18) and $FCFCFCFCFCFCFCFC;
+  red_3 := red_3 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 7) and (Aboard.Red shl 14) and $3F3F3F3F3F3F3F3F;
+  red_3 := red_3 + PopCount(temp);
+
+  red_2 := 0;
+  temp := Aboard.Red and (Aboard.Red shl 8);
+  red_2 := red_2 + PopCount(temp);
+  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
+  red_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
+
+  temp := Aboard.Red and (Aboard.Red shl 1) and $FEFEFEFEFEFEFEFE;
+  red_2 := red_2 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 9) and $FEFEFEFEFEFEFEFE;
+  red_2 := red_2 + PopCount(temp);
+  temp := Aboard.Red and (Aboard.Red shl 7) and $7F7F7F7F7F7F7F7F;
+  red_2 := red_2 + PopCount(temp);
+
+  // Black evaluation
+  black_3 := 0;
+  temp := Aboard.Black and (Aboard.Black shl 8) and (Aboard.Black shl 16);
+  black_3 := black_3 + PopCount(temp);
+  temp := Aboard.Black and (Aboard.Black shl 1) and (Aboard.Black shl 2) and $FCFCFCFCFCFCFCFC;
+  black_3 := black_3 + PopCount(temp);
+  temp := Aboard.Black and (Aboard.Black shl 9) and (Aboard.Black shl 18) and $FCFCFCFCFCFCFCFC;
+  black_3 := black_3 + PopCount(temp);
+  temp := Aboard.Black and (Aboard.Black shl 7) and (Aboard.Black shl 14) and $3F3F3F3F3F3F3F3F;
+  black_3 := black_3 + PopCount(temp);
+
+  black_2 := 0;
+  temp := Aboard.Black and (Aboard.Black shl 8);
+  black_2 := black_2 + PopCount(temp);
+  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
+  black_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
+
+  temp := Aboard.Black and (Aboard.Black shl 1) and $FEFEFEFEFEFEFEFE;
+  black_2 := black_2 + PopCount(temp);
+  temp := Aboard.Black and (Aboard.Black shl 9) and $FEFEFEFEFEFEFEFE;
+  black_2 := black_2 + PopCount(temp);
+  temp := Aboard.Black and (Aboard.Black shl 7) and $7F7F7F7F7F7F7F7F;
+  black_2 := black_2 + PopCount(temp);
+
+  if SideIsRed then
+    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20
+  else
+    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20;
+end;
+
+
+function Tform1.EvaluateScore(const Aboard:Tboard;const SideIsRed:Boolean):Integer;
+begin
+  Result := InternalEvaluate(Aboard, SideIsRed);
+end;
+
+procedure TForm1.BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
+var
+  i: Integer;
+begin
+  for i := 0 to High(Boards) do
+    Scores[i] := InternalEvaluate(Boards[i], SideIsRed);
+end;
+
 type
   TParallelProcedure = procedure(Index: PtrInt) of object;
 
@@ -1107,8 +1199,9 @@ end;
 function TForm1.Muti(const ComputerisRed:Boolean):string;
 var a,b,c,tempdepth:integer; move: TMoveArray;
 function test(const depth:integer;const cuted:Boolean;const fullthink:boolean):string;
-var a,b,i,j,bestscore, temp_idx, best_count:integer; templist, templist2: TMoveArray; OneDepthSideisRed:boolean; bestmove:string; move: TMoveArray;
+var a,b,i,j,bestscore, temp_idx, best_count, v:integer; templist, templist2: TMoveArray; OneDepthSideisRed:boolean; bestmove:string; move: TMoveArray;
     sort_indices: array of Integer;
+  win: Boolean;
 begin
   Result := '';
   move.Count := 0;
@@ -1149,11 +1242,37 @@ begin
    mutiBoard := board;
    if OneDepthSideisRed then
    begin
-     Redboardupdate(mutiBoard, templist.Moves[a]);
+     win := Redboardupdate(mutiBoard, templist.Moves[a]);
+     if win then
+     begin
+       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Red wins -> 2000
+       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -1999
+       mutiresults[a].Count := 1;
+       mutiresults[a].Moves[0] := templist.Moves[a];
+
+       SetLength(FParallelTasks, Length(FParallelTasks) + 1);
+       FParallelTasks[High(FParallelTasks)].Move1 := templist.Moves[a];
+       FParallelTasks[High(FParallelTasks)].Move2 := -1; // PASS
+       FParallelTasks[High(FParallelTasks)].Move1Idx := a;
+       continue;
+     end;
      FastMakeBlackMove(mutiBoard, templist2);
    end
    else  begin
-     Blackboardupdate(mutiBoard, templist.Moves[a]);
+     win := Blackboardupdate(mutiBoard, templist.Moves[a]);
+     if win then
+     begin
+       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Black wins -> 2000
+       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -1999
+       mutiresults[a].Count := 1;
+       mutiresults[a].Moves[0] := templist.Moves[a];
+
+       SetLength(FParallelTasks, Length(FParallelTasks) + 1);
+       FParallelTasks[High(FParallelTasks)].Move1 := templist.Moves[a];
+       FParallelTasks[High(FParallelTasks)].Move2 := -1; // PASS
+       FParallelTasks[High(FParallelTasks)].Move1Idx := a;
+       continue;
+     end;
      FastMakeRedMove(mutiBoard, templist2);
    end;
 
@@ -1333,6 +1452,8 @@ end;
 procedure TForm1.DoSomethingParallel(Index: PtrInt);
 var Aboard:Tboard; a, mutitscore, move1, move2: integer;
     path: TMoveArray;
+    win: Boolean;
+    v: Integer;
 begin
   move1 := FParallelTasks[Index].Move1;
   move2 := FParallelTasks[Index].Move2;
@@ -1350,29 +1471,68 @@ begin
 
     if mutisideisRed = True then
     begin
-      RedboardUpdate(Aboard,move1);
-      Blackboardupdate(Aboard,move2);
+      win := RedboardUpdate(Aboard,move1);
+      if win then
+      begin
+        v := InternalEvaluate(Aboard, True); // Red wins -> 2000, Black wins -> -2000
+        if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
+      end
+      else begin
+        win := Blackboardupdate(Aboard,move2);
+        if win then
+        begin
+          v := InternalEvaluate(Aboard, True);
+          if v > 0 then mutitscore := -(v - 2) else mutitscore := -(v + 2);
+        end
+        else begin
+          if  mutidepth > 5 then
+            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
+          else
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
+        end;
+      end;
     end
     else begin
-      Blackboardupdate(Aboard,move1);
-      RedboardUpdate(Aboard,move2);
+      win := Blackboardupdate(Aboard,move1);
+      if win then
+      begin
+        v := InternalEvaluate(Aboard, False); // Black wins -> 2000, Red wins -> -2000
+        if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
+      end
+      else begin
+        win := RedboardUpdate(Aboard,move2);
+        if win then
+        begin
+          v := InternalEvaluate(Aboard, False);
+          if v > 0 then mutitscore := -(v - 2) else mutitscore := -(v + 2);
+        end
+        else begin
+          if  mutidepth > 5 then
+            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
+          else
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
+        end;
+      end;
     end;
-
-    if  mutidepth > 5 then
-      mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
-    else
-      mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
   end
   else begin
      path.Moves[1] := -1; // PASS
      path.Count := 2;
 
      if mutisideisRed = True then
-       RedboardUpdate(Aboard,move1)
+       win := RedboardUpdate(Aboard,move1)
      Else
-       Blackboardupdate(Aboard,move1);
-     Aboard.Hash := Aboard.Hash xor FZobristSide;
-     mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, True, 2);
+       win := Blackboardupdate(Aboard,move1);
+
+     if win then
+     begin
+       v := InternalEvaluate(Aboard, mutiSideIsRed);
+       if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
+     end
+     else begin
+       Aboard.Hash := Aboard.Hash xor FZobristSide;
+       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, True, 2);
+     end;
   end;
 
   system.EnterCriticalsection(MyCriticalSection);
@@ -1468,26 +1628,29 @@ begin
   end;
 end;
 
-procedure TForm1.RedBoardUpdate(var Aboard:Tboard;LastChess:Integer);
+function TForm1.RedBoardUpdate(var Aboard:Tboard;LastChess:Integer): Boolean;
 var
   moveBit, flipped: UInt64;
 begin
+  Result := False;
   if (LastChess < 1) or (LastChess > 64) then Exit;
 
   moveBit := UInt64(1) shl (LastChess - 1);
   ApplyBoardMove(Aboard.Red, moveBit, flipped);
   UpdateHash(Aboard.Hash, LastChess - 1, 1);
 
-  if not CheckWin(Aboard.Red) then
+  if CheckWin(Aboard.Red) or CheckWin(Aboard.Black) then
   begin
-    if IsBottomRowFull(Aboard) then
-    begin
-       Aboard.Red := Aboard.Red shl 8;
-       Aboard.Black := Aboard.Black shl 8;
-       Aboard.Hash := CalculateHash(Aboard, False);
-    end
-    else
-      Aboard.Hash := Aboard.Hash xor FZobristSide;
+    Aboard.Hash := Aboard.Hash xor FZobristSide;
+    Exit(True);
+  end;
+
+  if IsBottomRowFull(Aboard) then
+  begin
+     Aboard.Red := Aboard.Red shl 8;
+     Aboard.Black := Aboard.Black shl 8;
+     Aboard.Hash := CalculateHash(Aboard, False);
+     if CheckWin(Aboard.Red) or CheckWin(Aboard.Black) then Exit(True);
   end
   else
     Aboard.Hash := Aboard.Hash xor FZobristSide;
@@ -1542,8 +1705,7 @@ begin
   redlist.Clear;
   blacklist.Clear;
   score(board,b,c);
-  RedboardUpdate(board,a);
-  if CheckWin(board.Red) then
+  if RedboardUpdate(board,a) then
   begin
     Updateboard;
     ShowMessage('Red wins!');
@@ -1740,48 +1902,34 @@ end;
 
 procedure TForm1.RunCliTest;
 var
-  aibestmove: TMoveArray;
-  score: Integer;
-  resStr, expectedStr: string;
   r, c: Integer;
-  moveList: TMoveArray;
 begin
-  moveList.Count := 0;
-
   // Use fixed seed for deterministic Zobrist keys in test
   RandSeed := 12345;
   InitializeZobrist;
 
-  // Setup board state from screenshot history
+  // Setup board state mirroring the screenshot where Black moving to Column 2 wins
   Initboard.Red := 0;
   Initboard.Black := 0;
   Initboard.Hash := 0;
+
+  // Setup Black pieces that will align after a shift
+  SetBoardPiece(Initboard, 4, 1, -1);
+  SetBoardPiece(Initboard, 5, 1, -1);
+  SetBoardPiece(Initboard, 6, 1, -1);
+
+  // Setup row 8 to be full except for column 2
+  for c := 1 to 8 do
+    if c <> 2 then SetBoardPiece(Initboard, 8, c, 1);
+
   board := Initboard;
-  // Start with Red to move
-  board.Hash := CalculateHash(board, True);
+  // Black to move
+  board.Hash := CalculateHash(board, False);
+  NornalDepth.Text := '2';
+  EndgameDepth.Text := '2';
 
-  // History (c,b) -> Index: (b-1)*8 + c
-  // Red 4,5 (36); Black 4,4 (28); Red 5,4 (29); Black 5,5 (37); Red 6,5 (38); Black 4,6 (44);
-  // Red 3,5 (35); Black 2,4 (26); Red 2,5 (34); Black 6,4 (30); Red 5,3 (21); Black 3,4 (27);
-  // Red 3,3 (19); Black 3,6 (43)
-  RedBoardUpdate(board, 36);  // 4,5
-  BlackBoardUpdate(board, 28); // 4,4
-  RedBoardUpdate(board, 29);  // 5,4
-  BlackBoardUpdate(board, 37); // 5,5
-  RedBoardUpdate(board, 38);  // 6,5
-  BlackBoardUpdate(board, 44); // 4,6
-  RedBoardUpdate(board, 35);  // 3,5
-  BlackBoardUpdate(board, 26); // 2,4
-  RedBoardUpdate(board, 34);  // 2,5
-  BlackBoardUpdate(board, 30); // 6,4
-  RedBoardUpdate(board, 21);  // 5,3
-  BlackBoardUpdate(board, 27); // 3,4
-  RedBoardUpdate(board, 19);  // 3,3
-  BlackBoardUpdate(board, 43); // 3,6
-
-  // Dump board state for debugging
-  Writeln('--- AI Test Debug Info ---');
-  Writeln('Board state:');
+  Writeln('--- AI Test: Black Win by Shift ---');
+  Writeln('Board state (pre-move):');
   for r := 1 to 8 do
   begin
     for c := 1 to 8 do
@@ -1795,23 +1943,14 @@ begin
     Writeln;
   end;
 
-  FastMakeRedMove(board, moveList);
-  Writeln('Available Red moves: ' + MoveArrayToThinkStep(moveList));
-  Writeln('Side to move: Red');
-  Writeln('Search Depth: 9');
+  Writeln('Search Depth: 2 (Parallel)');
 
-  // Search depth 9
-  aibestmove.Count := 0;
-  score := MinMax(board, True, 9, -INF, INF, aibestmove);
+  // Run the AI search for Black
+  AI(board, False);
 
-  resStr := IntToStr(score) + ': ' + MoveArrayToThinkStep(aibestmove);
-  Writeln('Actual result:   bestmove ' + resStr);
-
-  expectedStr := '-1: 6,3';
-  Writeln('Expected prefix: bestmove ' + expectedStr);
-
-  // Check against expected value (partial match for the prefix provided by user)
-  if Pos('-1: 6,3', resStr) = 1 then
+  // Verification: The best move in the "AI think list" logic should be '2' with score 1999
+  // FMetricsScore and FMetricsThinkStep are updated by CallSyncUpdateAIUI during search
+  if (FMetricsScore = '1999') and (FMetricsThinkStep = '2') then
   begin
     Writeln('Result: Test PASSED');
     Halt(0);
@@ -1819,6 +1958,8 @@ begin
   else
   begin
     Writeln('Result: Test FAILED');
+    Writeln('Expected Score 1999, Move 2');
+    Writeln('Actual Score: ' + FMetricsScore + ', Move: ' + FMetricsThinkStep);
     Halt(1);
   end;
 end;
@@ -1826,26 +1967,29 @@ end;
 
 
 
-procedure TForm1.BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer);
+function TForm1.BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer): Boolean;
 var
   moveBit, flipped: UInt64;
 begin
+  Result := False;
   if (LastChess < 1) or (LastChess > 64) then Exit;
 
   moveBit := UInt64(1) shl (LastChess - 1);
   ApplyBoardMove(Aboard.Black, moveBit, flipped);
   UpdateHash(Aboard.Hash, LastChess - 1, -1);
 
-  if not CheckWin(Aboard.Black) then
+  if CheckWin(Aboard.Red) or CheckWin(Aboard.Black) then
   begin
-    if IsBottomRowFull(Aboard) then
-    begin
-       Aboard.Red := Aboard.Red shl 8;
-       Aboard.Black := Aboard.Black shl 8;
-       Aboard.Hash := CalculateHash(Aboard, True);
-    end
-    else
-      Aboard.Hash := Aboard.Hash xor FZobristSide;
+    Aboard.Hash := Aboard.Hash xor FZobristSide;
+    Exit(True);
+  end;
+
+  if IsBottomRowFull(Aboard) then
+  begin
+     Aboard.Red := Aboard.Red shl 8;
+     Aboard.Black := Aboard.Black shl 8;
+     Aboard.Hash := CalculateHash(Aboard, True);
+     if CheckWin(Aboard.Red) or CheckWin(Aboard.Black) then Exit(True);
   end
   else
     Aboard.Hash := Aboard.Hash xor FZobristSide;
@@ -1900,8 +2044,7 @@ begin
    redlist.clear;
   blacklist.Clear;
   Score(board,b,c);
-  BlackBoardUpdate(board,a);
-  if CheckWin(board.Black) then
+  if BlackBoardUpdate(board,a) then
   begin
     Updateboard;
     ShowMessage('Black wins!');
@@ -3101,98 +3244,5 @@ begin
   end;
 
 end;
-
-function Tform1.InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
-var
-  red_win, black_win: Boolean;
-  temp: UInt64;
-  red_3, red_2, black_3, black_2: Integer;
-  red_v_bonus, black_v_bonus: Integer;
-begin
-  red_win := CheckWin(Aboard.Red);
-  black_win := CheckWin(Aboard.Black);
-
-  if red_win then
-  begin
-     if SideIsRed then Result := 2000 else Result := -2000;
-     Exit;
-  end;
-  if black_win then
-  begin
-     if SideIsRed then Result := -2000 else Result := 2000;
-     Exit;
-  end;
-
-  // Sum GNU Linetris evaluation: prioritize line formation.
-  // We reward 3-in-a-row and 2-in-a-row.
-
-  // Red evaluation
-  red_3 := 0;
-  temp := Aboard.Red and (Aboard.Red shl 8) and (Aboard.Red shl 16);
-  red_3 := red_3 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 1) and (Aboard.Red shl 2) and $FCFCFCFCFCFCFCFC;
-  red_3 := red_3 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 9) and (Aboard.Red shl 18) and $FCFCFCFCFCFCFCFC;
-  red_3 := red_3 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 7) and (Aboard.Red shl 14) and $3F3F3F3F3F3F3F3F;
-  red_3 := red_3 + PopCount(temp);
-
-  red_2 := 0;
-  temp := Aboard.Red and (Aboard.Red shl 8);
-  red_2 := red_2 + PopCount(temp);
-  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
-  red_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
-
-  temp := Aboard.Red and (Aboard.Red shl 1) and $FEFEFEFEFEFEFEFE;
-  red_2 := red_2 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 9) and $FEFEFEFEFEFEFEFE;
-  red_2 := red_2 + PopCount(temp);
-  temp := Aboard.Red and (Aboard.Red shl 7) and $7F7F7F7F7F7F7F7F;
-  red_2 := red_2 + PopCount(temp);
-
-  // Black evaluation
-  black_3 := 0;
-  temp := Aboard.Black and (Aboard.Black shl 8) and (Aboard.Black shl 16);
-  black_3 := black_3 + PopCount(temp);
-  temp := Aboard.Black and (Aboard.Black shl 1) and (Aboard.Black shl 2) and $FCFCFCFCFCFCFCFC;
-  black_3 := black_3 + PopCount(temp);
-  temp := Aboard.Black and (Aboard.Black shl 9) and (Aboard.Black shl 18) and $FCFCFCFCFCFCFCFC;
-  black_3 := black_3 + PopCount(temp);
-  temp := Aboard.Black and (Aboard.Black shl 7) and (Aboard.Black shl 14) and $3F3F3F3F3F3F3F3F;
-  black_3 := black_3 + PopCount(temp);
-
-  black_2 := 0;
-  temp := Aboard.Black and (Aboard.Black shl 8);
-  black_2 := black_2 + PopCount(temp);
-  // Vertical bonus for center columns (3-6) like screenshot (4,2), (4,3)
-  black_v_bonus := PopCount(temp and UInt64($003C3C3C3C3C3C00));
-
-  temp := Aboard.Black and (Aboard.Black shl 1) and $FEFEFEFEFEFEFEFE;
-  black_2 := black_2 + PopCount(temp);
-  temp := Aboard.Black and (Aboard.Black shl 9) and $FEFEFEFEFEFEFEFE;
-  black_2 := black_2 + PopCount(temp);
-  temp := Aboard.Black and (Aboard.Black shl 7) and $7F7F7F7F7F7F7F7F;
-  black_2 := black_2 + PopCount(temp);
-
-  if SideIsRed then
-    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20
-  else
-    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20;
-end;
-
-
-function Tform1.EvaluateScore(const Aboard:Tboard;const SideIsRed:Boolean):Integer;
-begin
-  Result := InternalEvaluate(Aboard, SideIsRed);
-end;
-
-procedure TForm1.BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
-var
-  i: Integer;
-begin
-  for i := 0 to High(Boards) do
-    Scores[i] := InternalEvaluate(Boards[i], SideIsRed);
-end;
-
 
 end.

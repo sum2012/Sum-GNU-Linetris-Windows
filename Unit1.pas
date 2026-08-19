@@ -265,6 +265,7 @@ type
       function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True; Ply: Integer = 0):integer;
       function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       procedure BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
+      function CountWinningPlaces(const ABoard: TBoard; IsRed: Boolean): Integer;
     function InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
     function EvaluateScore(const Aboard:Tboard;const SideIsRed:Boolean):Integer;
       function MinMaxStart(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
@@ -798,12 +799,39 @@ begin
   Own := Own or Move;
 end;
 
+function TForm1.CountWinningPlaces(const ABoard: TBoard; IsRed: Boolean): Integer;
+var
+  moves: UInt64;
+  bit, count: Integer;
+  tempBoard: TBoard;
+begin
+  count := 0;
+  moves := GetBoardMoves(ABoard);
+  for bit := 0 to 63 do
+  begin
+    if (moves and (UInt64(1) shl bit)) <> 0 then
+    begin
+      tempBoard := ABoard;
+      if IsRed then
+      begin
+        if RedBoardUpdate(tempBoard, bit + 1) then inc(count);
+      end
+      else begin
+        if BlackBoardUpdate(tempBoard, bit + 1) then inc(count);
+      end;
+    end;
+  end;
+  Result := count;
+end;
+
 function Tform1.InternalEvaluate(const Aboard:Tboard;const SideIsRed:Boolean):Integer; inline;
 var
   red_win, black_win: Boolean;
   temp: UInt64;
   red_3, red_2, black_3, black_2: Integer;
   red_v_bonus, black_v_bonus: Integer;
+  red_threats, black_threats: Integer;
+  pieces, parity_bonus: Integer;
 begin
   red_win := CheckWin(Aboard.Red);
   black_win := CheckWin(Aboard.Black);
@@ -818,6 +846,26 @@ begin
      if SideIsRed then Result := -2000 else Result := 2000;
      Exit;
   end;
+
+  // Fork detection
+  red_threats := CountWinningPlaces(Aboard, True);
+  black_threats := CountWinningPlaces(Aboard, False);
+
+  if red_threats >= 2 then
+  begin
+    if SideIsRed then Result := 2000 else Result := -2000;
+    Exit;
+  end;
+  if black_threats >= 2 then
+  begin
+    if SideIsRed then Result := -2000 else Result := 2000;
+    Exit;
+  end;
+
+  // Parity bonus
+  pieces := PopCount(Aboard.Red or Aboard.Black);
+  // In an 8x8 game, Black (the second player) often has an advantage when the number of empty squares is even.
+  if (64 - pieces) mod 2 = 0 then parity_bonus := 15 else parity_bonus := 0;
 
   // Sum GNU Linetris evaluation: prioritize line formation.
   // We reward 3-in-a-row and 2-in-a-row.
@@ -871,9 +919,13 @@ begin
   black_2 := black_2 + PopCount(temp);
 
   if SideIsRed then
-    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20
+  begin
+    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20 + (red_threats - black_threats) * 50 - parity_bonus;
+  end
   else
-    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20;
+  begin
+    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20 + (black_threats - red_threats) * 50 + parity_bonus;
+  end;
 end;
 
 

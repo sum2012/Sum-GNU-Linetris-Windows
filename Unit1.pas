@@ -215,6 +215,7 @@ type
     procedure TojavaboardbuttonClick(Sender: TObject);
   private
     FTTSize: Cardinal;
+    FLastAIScore: string;
 //      mutistep:Boolean;
 //      mutiscore:Integer;
       mutidepth:integer;
@@ -262,6 +263,7 @@ type
       function BlackBoardUpdate(var Aboard:Tboard;LastChess:Integer): Boolean;
       procedure Updateboard;
       function AI(Aboard:Tboard;ComputerIsRed:Boolean):string;
+      function GetCleanStep(const s: string): string;
       function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True; Ply: Integer = 0):integer;
       function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       procedure BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
@@ -1211,6 +1213,7 @@ begin
   RedNoMove := False;
   BlackNoMove := False;
   notinback := True;
+  FLastAIScore := '';
 
   Updateboard;
 
@@ -1391,6 +1394,7 @@ begin
    Result := 'Image' + IntToStr(move.Moves[0]);
  end;
  CallSyncUpdateAIUI(IntToStr(bestscore), '', '', False, False);
+ FLastAIScore := IntToStr(bestscore);
 end
 else begin
   // Aggressive filtering to match original performance
@@ -1749,7 +1753,11 @@ begin
 
   if notinback = true then
   begin
-    StepListbox.Items.Add('Red '+intTostr(c));
+    if FLastAIScore <> '' then
+      StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': Red ' + IntToStr(c) + ' (' + FLastAIScore + ')')
+    else
+      StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': Red ' + IntToStr(c));
+    FLastAIScore := '';
   end;
   if StepListBox.items.count > 1 then
     BackButton.enabled:=True;
@@ -1785,7 +1793,11 @@ begin
   begin
     if notinback =False then
       exit;
-    StepListBox.Items.Add('Black pass');
+    if FLastAIScore <> '' then
+      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass (' + FLastAIScore + ')')
+    else
+      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass');
+    FLastAIScore := '';
     c:=movedlist.Add('Blackpass');
     for a:=1 to 8 do
       for b:=1 to 8 do
@@ -1824,8 +1836,12 @@ begin
       else begin
         if NotInBack = True then
         begin
-        StepListBox.Items.Add('Red pass');
-        c:=movedlist.Add('Redpass');
+          if FLastAIScore <> '' then
+            StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass (' + FLastAIScore + ')')
+          else
+            StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass');
+          FLastAIScore := '';
+          c:=movedlist.Add('Redpass');
         for a:=1 to 8 do
          for b:=1 to 8 do
         movedlist[c]:=movedlist[c]+intTostr(GetBoardPiece(board, a, b)+1);
@@ -2088,7 +2104,11 @@ begin
   SetBoardPiece(board, b, c, -1);
   if notinback = true then
   begin
-    StepListbox.Items.Add('Black '+intTostr(c));
+    if FLastAIScore <> '' then
+      StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': Black ' + IntToStr(c) + ' (' + FLastAIScore + ')')
+    else
+      StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': Black ' + IntToStr(c));
+    FLastAIScore := '';
    end;
    if StepListBox.items.count > 1 then
       backbutton.enabled:=True;
@@ -2123,7 +2143,11 @@ begin
   else begin
     if notinback =False then
       exit;
-    StepListBox.Items.Add('Red pass');
+    if FLastAIScore <> '' then
+      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass (' + FLastAIScore + ')')
+    else
+      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass');
+    FLastAIScore := '';
     c:=movedlist.Add('Red');
     for a:=1 to 8 do
      for b:=1 to 8 do
@@ -2161,7 +2185,11 @@ begin
       else begin
       if NotInback = True then
       begin
-        StepListBox.Items.Add('Black pass');
+        if FLastAIScore <> '' then
+          StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass (' + FLastAIScore + ')')
+        else
+          StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass');
+        FLastAIScore := '';
         c:=movedlist.Add('Black');
         for a:=1 to 8 do
          for b:=1 to 8 do
@@ -2301,10 +2329,10 @@ begin
     if StepListBox.Items.count = 0 then
       StepListBox.Items.add('temp');
     if (StepListBox.Items.count > 0) and
-       ((StepListBox.Items[StepListBox.count-1] = 'temp') or
-        (copy(StepListBox.Items[StepListBox.Items.count - 1],1,5) = 'Black')) then
+       ((GetCleanStep(StepListBox.Items[StepListBox.count-1]) = 'temp') or
+        (copy(GetCleanStep(StepListBox.Items[StepListBox.Items.count - 1]),1,5) = 'Black')) then
     begin
-      if StepListBox.Items[StepListBox.count-1] = 'temp' then
+      if GetCleanStep(StepListBox.Items[StepListBox.count-1]) = 'temp' then
         StepListBox.Clear;
       RedNoMove:=False;
       BlackNoMove:=False;
@@ -2312,7 +2340,7 @@ begin
     end;
   end
   else begin
-    if (StepListBox.Items.count > 0) and (copy(StepListBox.Items[StepListBox.Items.count - 1],1,5) = 'Black') then
+    if (StepListBox.Items.count > 0) and (copy(GetCleanStep(StepListBox.Items[StepListBox.Items.count - 1]),1,5) = 'Black') then
     begin
       RedNoMove:=False;
       BlackNoMove:=False;
@@ -2332,7 +2360,7 @@ begin
   blacklabel.Caption := 'Computer';
   if FirstIsRed then
   begin
-    if (StepListBox.Items.count > 0) and (copy(StepListBox.Items[StepListBox.Items.count - 1],1,3) = 'Red') then
+    if (StepListBox.Items.count > 0) and (copy(GetCleanStep(StepListBox.Items[StepListBox.Items.count - 1]),1,3) = 'Red') then
     begin
       RedNoMove:=False;
       BlackNoMove:=False;
@@ -2343,10 +2371,10 @@ begin
     if StepListBox.Items.count = 0 then
       StepListBox.Items.add('temp');
     if (StepListBox.Items.count > 0) and
-       ((StepListBox.Items[StepListBox.count-1] = 'temp') or
-        (copy(StepListBox.Items[StepListBox.Items.count - 1],1,3) = 'Red')) then
+       ((GetCleanStep(StepListBox.Items[StepListBox.count-1]) = 'temp') or
+        (copy(GetCleanStep(StepListBox.Items[StepListBox.Items.count - 1]),1,3) = 'Red')) then
     begin
-      if StepListBox.Items[StepListBox.count-1] = 'temp' then
+      if GetCleanStep(StepListBox.Items[StepListBox.count-1]) = 'temp' then
         StepListBox.Clear;
       RedNoMove:=False;
       BlackNoMove:=False;
@@ -2358,7 +2386,7 @@ end;
 
 
 procedure TForm1.LoadButtonClick(Sender: TObject);
-var a,h:string;b,c,d,e:integer;F:textfile;templist:Tstringlist;
+var a,h:string;b,c,d,e:integer;F:textfile;templist, templist_moves:Tstringlist;
 begin
   if OpenDialog1.Execute then
   begin
@@ -2385,12 +2413,11 @@ begin
     movedlist.clear;
     StepListBox.items.Clear;
 
-//    readln(f,a);//need change
+    templist_moves := TStringList.Create;
     while not eof(f) do
     begin
       readln(f,a);
-      StepListBox.Items.Add(a);
-     // need add ?
+      templist_moves.Add(a);
     end;
     closefile(f);
     board:=initboard;
@@ -2401,52 +2428,58 @@ begin
     ComputerVsHuman.Checked:=False;
     HumanVsComputer.Checked:=False;
     templist:= Tstringlist.Create;
-    for b:= 0 to StepListBox.Items.count - 1 do
+    for b:= 0 to templist_moves.count - 1 do
     begin
-      if copy(StepListBox.Items[b],1,3) = 'Red' then
+      a := templist_moves[b];
+      d := Pos(': ', a);
+      if d > 0 then
+        a := Copy(a, d + 2, Length(a));
+
+      if copy(a,1,3) = 'Red' then
       begin
-        if copy(StepListBox.Items[b],5,1) <> 'p' then//p for pass
+        if copy(a,5,1) <> 'p' then//p for pass
         begin
           e:=movedlist.Add('Red');
           for c:=1 to 8 do
            for d:=1 to 8 do
              movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
-          c:= strtoint(copy(StepListBox.Items[b],5,1));
+          c:= strtoint(copy(a,5,1));
           d:= GetDropRow(board, c);
           MakeRedMove(board,templist);
           MakeClick(templist,'player1');
           RedChessClick(Timage(FindComponent('Image'+intTostr(8*d+c-8))));
-  //        redlist.Clear;
-//          blacklist.Clear;
-//          updateboard;
+          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end
         else begin
           e:=movedlist.Add('Redpass');
           for c:=1 to 8 do
           for d:=1 to 8 do
           movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
+          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end;
       end
-      else if copy(StepListBox.Items[b],1,5) = 'Black' then
+      else if copy(a,1,5) = 'Black' then
       begin
-        if copy(StepListBox.Items[b],7,1) <> 'p' then//p for pass
+        if copy(a,7,1) <> 'p' then//p for pass
         begin
           e:=movedlist.Add('Black');
           for c:=1 to 8 do
            for d:=1 to 8 do
              movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
 
-          c:= strtoint(copy(StepListBox.Items[b],7,1));
+          c:= strtoint(copy(a,7,1));
           d:= GetDropRow(board, c);
           MakeBlackMove(board,templist);
           MakeClick(templist,'player2');
           BlackChessClick(Timage(FindComponent('Image'+intTostr(8*d+c-8))));
+          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end
         else begin
           e:=movedlist.Add('Blackpass');
           for c:=1 to 8 do
           for d:=1 to 8 do
           movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
+          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end;
       end;
     end;
@@ -2492,6 +2525,7 @@ begin
   end;
   Updateboard;
   templist.Free;
+  templist_moves.Free;
   end;
 end;
 
@@ -2530,7 +2564,7 @@ begin
     movedlist.Delete(movedlist.Count-1);
     StepListBox.items.Delete(StepListBox.count-1);
   end;
-  if (StepListBox.items[StepListBox.count-1] = 'Red pass') or (StepListBox.items[StepListBox.count-3] = 'Black pass') then
+  if (GetCleanStep(StepListBox.items[StepListBox.count-1]) = 'Red pass') or (GetCleanStep(StepListBox.items[StepListBox.count-3]) = 'Black pass') then
   begin
    StepListBox.items.Delete(StepListBox.count-1);
    StepListBox.items.Delete(StepListBox.count-1);
@@ -2583,6 +2617,17 @@ begin
   templist.Free;
 end;
 
+
+function TForm1.GetCleanStep(const s: string): string;
+var
+  p: Integer;
+begin
+  p := Pos(': ', s);
+  if p > 0 then
+    Result := Copy(s, p + 2, Length(s))
+  else
+    Result := s;
+end;
 
 function TForm1.MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer):integer;
 var a,b,bestvalue, value, best_a_move, oldAlpha:integer; moves: TMoveArray; tempboard:Tboard;
@@ -2937,6 +2982,7 @@ begin
   redlist.Clear;
   blacklist.Clear;
   CallSyncUpdateAIUI(intTostr(A), '', MoveArrayToThinkStep(thinkstep), False, False);
+  FLastAIScore := IntToStr(a);
 
   if thinkstep.Count > 0 then
     Result := 'Image' + IntToStr(thinkstep.Moves[0])
@@ -3246,7 +3292,7 @@ begin
 end;
 
 procedure TForm1.TojavaboardbuttonClick(Sender: TObject);
-var F:Textfile;s,t,u:string;a:integer;
+var F:Textfile;s,t,u,h:string;a:integer;
 begin
   SaveDialog1.FileName := '*.htm';
   SaveDialog1.Filter := 'Apple game Java (*.htm)|*.HTM';
@@ -3266,14 +3312,15 @@ begin
    s:='';
    for a := 0 to StepListBox.Count - 1 do
    begin
+     h := GetCleanStep(StepListBox.Items[a]);
      t := '';
-     if copy(StepListBox.Items[a],1,3) = 'Red'  then
-       t := copy(StepListBox.Items[a],5,3)
-     else if copy(StepListBox.Items[a],1,5) = 'Black'  then
-       t := copy(StepListBox.Items[a],7,3);
+     if copy(h,1,3) = 'Red'  then
+       t := copy(h,5,3)
+     else if copy(h,1,5) = 'Black'  then
+       t := copy(h,7,3);
      if a =  StepListBox.Count - 2 then
      begin
-       if (StepListBox.items[a] = 'Red pass') and (StepListBox.items[a+1] = 'Black pass') or (StepListBox.items[a] = 'Black pass') and (StepListBox.items[a+1] = 'Red pass') then
+       if (GetCleanStep(StepListBox.items[a]) = 'Red pass') and (GetCleanStep(StepListBox.items[a+1]) = 'Black pass') or (GetCleanStep(StepListBox.items[a]) = 'Black pass') and (GetCleanStep(StepListBox.items[a+1]) = 'Red pass') then
          break;
      end;
      if copy(t,1,1) = 'p' then

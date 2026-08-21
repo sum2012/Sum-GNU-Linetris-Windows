@@ -246,8 +246,8 @@ type
       procedure InitializeZobrist;
       function CalculateHash(const ABoard: Tboard; SideIsRed: Boolean): UInt64;
       procedure UpdateHash(var AHash: UInt64; PieceIdx: Integer; PieceType: Integer); // PieceType: 1=Red, -1=Black, 0=Remove/Toggle
-      procedure StoreTT(Hash: UInt64; Depth, Value, Flag, BestMove: Integer);
-      function LookupTT(Hash: UInt64; Depth, Alpha, Beta: Integer; var Value, BestMove: Integer): Boolean;
+      procedure StoreTT(Hash: UInt64; Depth, Value, Flag, BestMove, Ply: Integer);
+    function LookupTT(Hash: UInt64; Depth, Alpha, Beta: Integer; var Value, BestMove, Ply: Integer): Boolean;
       procedure GetPVFromTT(ABoard: Tboard; SideIsRed: Boolean; MaxMoreMoves: Integer; var PV: TMoveArray);
       procedure FastMakeRedMove(const ABoard:Tboard; var temp:TMoveArray);
       procedure FastMakeBlackMove(const ABoard:Tboard; var temp:TMoveArray);
@@ -264,7 +264,7 @@ type
       procedure Updateboard;
       function AI(Aboard:Tboard;ComputerIsRed:Boolean):string;
       function GetCleanStep(const s: string): string;
-      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean = True; Ply: Integer = 0):integer;
+      function MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       function MinMaxRandom(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer = 0):integer;
       procedure BatchEvaluateOnAVX512(const Boards: array of Tboard; const SideIsRed: Boolean; var Scores: array of Integer);
       function CountWinningPlaces(const ABoard: TBoard; IsRed: Boolean): Integer;
@@ -460,7 +460,7 @@ begin
   end;
 end;
 
-procedure TForm1.StoreTT(Hash: UInt64; Depth, Value, Flag, BestMove: Integer);
+procedure TForm1.StoreTT(Hash: UInt64; Depth, Value, Flag, BestMove, Ply: Integer);
 var
   Index: Cardinal;
   DataSignature: UInt64;
@@ -472,6 +472,9 @@ begin
   // Depth-preferred replacement
   if (FTranspositionTable[Index].Hash = 0) or (FTranspositionTable[Index].Depth <= Depth) then
   begin
+    if Value > 4000 then Value := Value + Ply
+    else if Value < -4000 then Value := Value - Ply;
+
     // Create a signature of the data fields to detect torn reads in a lockless environment
     DataSignature := UInt64(Value) xor (UInt64(Depth) shl 32) xor
                      (UInt64(Flag) shl 40) xor (UInt64(BestMove) shl 48);
@@ -487,7 +490,7 @@ begin
   end;
 end;
 
-function TForm1.LookupTT(Hash: UInt64; Depth, Alpha, Beta: Integer; var Value, BestMove: Integer): Boolean;
+function TForm1.LookupTT(Hash: UInt64; Depth, Alpha, Beta: Integer; var Value, BestMove, Ply: Integer): Boolean;
 var
   Index: Cardinal;
   Entry: TTranspositionEntry;
@@ -518,21 +521,27 @@ begin
         TT_EXACT:
         begin
           Value := Entry.Value;
+          if Value > 4000 then Value := Value - Ply
+          else if Value < -4000 then Value := Value + Ply;
           Exit(True);
         end;
         TT_LOWERBOUND:
         begin
-          if Entry.Value >= Beta then
+          Value := Entry.Value;
+          if Value > 4000 then Value := Value - Ply
+          else if Value < -4000 then Value := Value + Ply;
+          if Value >= Beta then
           begin
-            Value := Entry.Value;
             Exit(True);
           end;
         end;
         TT_UPPERBOUND:
         begin
-          if Entry.Value <= Alpha then
+          Value := Entry.Value;
+          if Value > 4000 then Value := Value - Ply
+          else if Value < -4000 then Value := Value + Ply;
+          if Value <= Alpha then
           begin
-            Value := Entry.Value;
             Exit(True);
           end;
         end;
@@ -840,12 +849,12 @@ begin
 
   if red_win then
   begin
-     if SideIsRed then Result := 2000 else Result := -2000;
+     if SideIsRed then Result := 5000 else Result := -5000;
      Exit;
   end;
   if black_win then
   begin
-     if SideIsRed then Result := -2000 else Result := 2000;
+     if SideIsRed then Result := -5000 else Result := 5000;
      Exit;
   end;
 
@@ -855,12 +864,12 @@ begin
 
   if red_threats >= 2 then
   begin
-    if SideIsRed then Result := 2000 else Result := -2000;
+    if SideIsRed then Result := 5000 else Result := -5000;
     Exit;
   end;
   if black_threats >= 2 then
   begin
-    if SideIsRed then Result := -2000 else Result := 2000;
+    if SideIsRed then Result := -5000 else Result := 5000;
     Exit;
   end;
 
@@ -1300,8 +1309,8 @@ begin
      win := Redboardupdate(mutiBoard, templist.Moves[a]);
      if win then
      begin
-       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Red wins -> 2000
-       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -1999
+       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Red wins -> 5000
+       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -4999
        mutiresults[a].Count := 1;
        mutiresults[a].Moves[0] := templist.Moves[a];
 
@@ -1317,8 +1326,8 @@ begin
      win := Blackboardupdate(mutiBoard, templist.Moves[a]);
      if win then
      begin
-       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Black wins -> 2000
-       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -1999
+       v := InternalEvaluate(mutiBoard, OneDepthSideisRed); // Black wins -> 5000
+       if v > 0 then mutiscores[a] := -(v - 1) else mutiscores[a] := -(v + 1); // mutiscores[a] = -4999
        mutiresults[a].Count := 1;
        mutiresults[a].Moves[0] := templist.Moves[a];
 
@@ -1450,7 +1459,7 @@ begin
 
   a := 0; b := 0;
   score(board,a,b);
-  if a+b + strToint(Endgamedepth.text) >= 60 then
+  if a+b + strToint(Endgamedepth.text) >= 64 then
   begin
     tempdepth:= 64-a-b;
     Result:=test(tempdepth,true,True);
@@ -1459,13 +1468,13 @@ begin
     tempdepth:= strToint(Nornaldepth.Text);
     if (c >= 4) and (a + b < 46)  then
     begin
-      tempdepth:= tempdepth-4;
-      test(tempdepth,true,false);
-      tempdepth:= tempdepth + 2;
-      Result:=test(tempdepth,false,false);
+      if tempdepth > 6 then test(tempdepth-6,true,false);
+      if tempdepth > 4 then test(tempdepth-4,true,false);
+      if tempdepth > 2 then test(tempdepth-2,true,false);
+      Result:=test(tempdepth,false,true);
     end
     else begin
-      tempdepth := tempdepth - 2;
+      if tempdepth > 2 then test(tempdepth-2,true,false);
       Result:=test(tempdepth,true,True);
     end;
   end;
@@ -1530,7 +1539,7 @@ begin
       win := RedboardUpdate(Aboard,move1);
       if win then
       begin
-        v := InternalEvaluate(Aboard, True); // Red wins -> 2000, Black wins -> -2000
+        v := InternalEvaluate(Aboard, True); // Red wins -> 5000, Black wins -> -5000
         if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
       end
       else begin
@@ -1544,7 +1553,7 @@ begin
           if  mutidepth > 5 then
             mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
           else
-            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2);
         end;
       end;
     end
@@ -1552,7 +1561,7 @@ begin
       win := Blackboardupdate(Aboard,move1);
       if win then
       begin
-        v := InternalEvaluate(Aboard, False); // Black wins -> 2000, Red wins -> -2000
+        v := InternalEvaluate(Aboard, False); // Black wins -> 5000, Red wins -> -5000
         if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
       end
       else begin
@@ -1566,7 +1575,7 @@ begin
           if  mutidepth > 5 then
             mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
           else
-            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, True, 2);
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2);
         end;
       end;
     end;
@@ -1587,7 +1596,7 @@ begin
      end
      else begin
        Aboard.Hash := Aboard.Hash xor FZobristSide;
-       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, True, 2);
+       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, 2);
      end;
   end;
 
@@ -2647,12 +2656,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
+    if SideIsRed then Result := 5000 - Ply else Result := -5000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
+    if SideIsRed then Result := -5000 + Ply else Result := 5000 - Ply;
     exit;
   end;
 
@@ -2660,7 +2669,7 @@ begin
   oldAlpha := alpha;
   tt_value := 0;
   tt_best_move := -2;
-  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move) then
+  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move, Ply) then
   begin
     if (tt_best_move <> -2) then
     begin
@@ -2725,8 +2734,8 @@ begin
     aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
     inc(aithinkstep.Count);
     Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, True, Ply + 1);
-    StoreTT(h, depth, value, TT_EXACT, -1);
+    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, Ply + 1);
+    StoreTT(h, depth, value, TT_EXACT, -1, Ply);
     Result := value;
     exit;
   end;
@@ -2746,7 +2755,7 @@ begin
     if SideIsRed then RedboardUpdate(Aboard, moves.Moves[a])
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
-    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, True, Ply + 1);
+    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, Ply + 1);
 
     if value > bestvalue then
     begin
@@ -2762,18 +2771,18 @@ begin
   if best_a_move <> -2 then
   begin
     if bestvalue <= oldAlpha then
-      StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move)
+      StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move, Ply)
     else if bestvalue >= beta then
-      StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move)
+      StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move, Ply)
     else
-      StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move);
+      StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move, Ply);
   end;
 
   aithinkstep := bestaithinkstep;
   Result := bestvalue;
 end;
 
-function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; AllowNull: Boolean; Ply: Integer):integer;
+function TForm1.MinMax(Aboard:Tboard;SideIsRed:Boolean;depth:integer;alpha, beta: integer;var aithinkstep:TMoveArray; Ply: Integer):integer;
 var a,b,bestvalue, value, best_a_move:integer;
     moves: TMoveArray;
     tempboard: Tboard;
@@ -2791,12 +2800,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
+    if SideIsRed then Result := 5000 - Ply else Result := -5000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
+    if SideIsRed then Result := -5000 + Ply else Result := 5000 - Ply;
     exit;
   end;
 
@@ -2804,7 +2813,7 @@ begin
   oldAlpha := alpha;
   tt_value := 0;
   tt_best_move := -2;
-  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move) then
+  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move, Ply) then
   begin
     if (tt_best_move <> -2) then
     begin
@@ -2825,19 +2834,7 @@ begin
     exit;
   end;
 
-  // Null Move Pruning
-  if AllowNull and (depth >= 3) then
-  begin
-    tempboard := Aboard;
-    tempboard.Hash := tempboard.Hash xor FZobristSide;
-    oldaithinkstep := aithinkstep;
-    value := -MinMax(tempboard, not SideIsRed, depth - 3, -beta, -beta + 1, oldaithinkstep, False, Ply + 1);
-    if value >= beta then
-    begin
-      StoreTT(h, depth, value, TT_LOWERBOUND, -1);
-      Exit(value);
-    end;
-  end;
+
 
   bestvalue := -INF;
   moves.Count := 0;
@@ -2890,8 +2887,8 @@ begin
     aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
     inc(aithinkstep.Count);
     Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, True, Ply + 1);
-    StoreTT(h, depth, value, TT_EXACT, -1);
+    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, Ply + 1);
+    StoreTT(h, depth, value, TT_EXACT, -1, Ply);
     Result := value;
     exit;
   end;
@@ -2909,7 +2906,7 @@ begin
     if SideIsRed then RedboardUpdate(Aboard, moves.Moves[a])
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
-    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, True, Ply + 1);
+    value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, Ply + 1);
 
     if value > bestvalue then
     begin
@@ -2922,11 +2919,11 @@ begin
   end;
 
   if bestvalue <= oldAlpha then
-    StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move)
+    StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move, Ply)
   else if bestvalue >= beta then
-    StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move)
+    StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move, Ply)
   else
-    StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move);
+    StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move, Ply);
 
   aithinkstep := bestaithinkstep;
   Result := bestvalue;
@@ -3032,12 +3029,12 @@ begin
 
   if CheckWin(Aboard.Red) then
   begin
-    if SideIsRed then Result := 2000 - Ply else Result := -2000 + Ply;
+    if SideIsRed then Result := 5000 - Ply else Result := -5000 + Ply;
     exit;
   end;
   if CheckWin(Aboard.Black) then
   begin
-    if SideIsRed then Result := -2000 + Ply else Result := 2000 - Ply;
+    if SideIsRed then Result := -5000 + Ply else Result := 5000 - Ply;
     exit;
   end;
 
@@ -3045,7 +3042,7 @@ begin
   oldAlpha := alpha;
   tt_value := 0;
   tt_best_move := -2;
-  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move) then
+  if LookupTT(h, depth, alpha, beta, tt_value, tt_best_move, Ply) then
   begin
     if (tt_best_move <> -2) then
     begin
@@ -3135,7 +3132,7 @@ begin
     current_path.Moves[current_path.Count] := moves.Moves[a];
     inc(current_path.Count);
 
-    value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path, True, Ply + 1);
+    value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path, Ply + 1);
     if value > bestvalue then
     begin
       bestvalue := value;
@@ -3154,11 +3151,11 @@ begin
   if best_a_move <> -2 then
   begin
     if bestvalue <= oldAlpha then
-      StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move)
+      StoreTT(h, depth, bestvalue, TT_UPPERBOUND, best_a_move, Ply)
     else if bestvalue >= beta then
-      StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move)
+      StoreTT(h, depth, bestvalue, TT_LOWERBOUND, best_a_move, Ply)
     else
-      StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move);
+      StoreTT(h, depth, bestvalue, TT_EXACT, best_a_move, Ply);
   end;
 
   if Length(best_paths) > 0 then

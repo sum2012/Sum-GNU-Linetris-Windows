@@ -737,6 +737,15 @@ begin
   end;
 end;
 
+function IsCentralMove(move: Integer): Boolean; inline;
+var
+  col: Integer;
+begin
+  if move = -1 then Exit(False);
+  col := ((move - 1) mod 8) + 1;
+  Result := (col >= 3) and (col <= 6);
+end;
+
 function GetBoardPiece(const AB: Tboard; Row, Col: Integer): Integer; inline;
 var bit: Integer;
 begin
@@ -1376,7 +1385,10 @@ mutidepth:= depth;
 TParallel.DoParallel(DoSomethingParallel,0,High(FParallelTasks));
 
 for a:= 0 to High(mutiscores) do
+begin
    mutiscores[a] := -mutiscores[a];
+   if IsCentralMove(templist.Moves[a]) then inc(mutiscores[a]);
+end;
 
 // Sort logic needs to be updated too. For now I'll just find the best.
 bestscore := -INF;
@@ -2769,6 +2781,7 @@ begin
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
     value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, Ply + 1);
+    if IsCentralMove(moves.Moves[a]) then inc(value);
 
     if value > bestvalue then
     begin
@@ -3146,6 +3159,7 @@ begin
     inc(current_path.Count);
 
     value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path, Ply + 1);
+    if IsCentralMove(moves.Moves[a]) then inc(value);
     if value > bestvalue then
     begin
       bestvalue := value;

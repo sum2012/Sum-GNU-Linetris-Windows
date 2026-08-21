@@ -2781,7 +2781,6 @@ begin
     else BlackboardUpdate(Aboard, moves.Moves[a]);
 
     value := -MinMax(Aboard, Not SideIsRed, depth - 1, -beta, -alpha, aithinkstep, Ply + 1);
-    if IsCentralMove(moves.Moves[a]) then inc(value);
 
     if value > bestvalue then
     begin
@@ -3159,7 +3158,6 @@ begin
     inc(current_path.Count);
 
     value := -MinMax(tempboard, Not SideIsRed, depth - 1, -beta, -alpha, current_path, Ply + 1);
-    if IsCentralMove(moves.Moves[a]) then inc(value);
     if value > bestvalue then
     begin
       bestvalue := value;

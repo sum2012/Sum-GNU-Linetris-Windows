@@ -843,6 +843,8 @@ var
   red_v_bonus, black_v_bonus: Integer;
   red_threats, black_threats: Integer;
   pieces, parity_bonus: Integer;
+  black_row7_threats, i: Integer;
+  Occupied: UInt64;
 begin
   red_win := CheckWin(Aboard.Red);
   black_win := CheckWin(Aboard.Black);
@@ -871,6 +873,17 @@ begin
   begin
     if SideIsRed then Result := -5000 else Result := 5000;
     Exit;
+  end;
+
+  // Second floor (Row 7) winning place evaluation
+  black_row7_threats := 0;
+  Occupied := Aboard.Red or Aboard.Black;
+  for i := 48 to 55 do // Row 7 bits
+  begin
+    if (Occupied and (UInt64(1) shl i)) = 0 then
+    begin
+      if CheckWin(Aboard.Black or (UInt64(1) shl i)) then inc(black_row7_threats);
+    end;
   end;
 
   // Parity bonus
@@ -931,11 +944,11 @@ begin
 
   if SideIsRed then
   begin
-    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20 + (red_threats - black_threats) * 50 - parity_bonus;
+    Result := (red_3 - black_3) * 100 + (red_2 - black_2) * 10 + (red_v_bonus - black_v_bonus) * 20 + (red_threats - black_threats) * 50 - black_row7_threats * 150 - parity_bonus;
   end
   else
   begin
-    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20 + (black_threats - red_threats) * 50 + parity_bonus;
+    Result := (black_3 - red_3) * 100 + (black_2 - red_2) * 10 + (black_v_bonus - red_v_bonus) * 20 + (black_threats - red_threats) * 50 + black_row7_threats * 150 + parity_bonus;
   end;
 end;
 

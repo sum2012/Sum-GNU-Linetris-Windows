@@ -1576,9 +1576,9 @@ begin
         end
         else begin
           if  mutidepth > 5 then
-            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
+            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth - 2, -INF, INF, path, 2)
           else
-            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2);
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth - 2, -INF, INF, path, 2);
         end;
       end;
     end
@@ -1598,9 +1598,9 @@ begin
         end
         else begin
           if  mutidepth > 5 then
-            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2)
+            mutitscore := -MinMaxStart(Aboard,mutiSideIsRed,mutidepth - 2, -INF, INF, path, 2)
           else
-            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth, -INF, INF, path, 2);
+            mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth - 2, -INF, INF, path, 2);
         end;
       end;
     end;
@@ -1621,7 +1621,7 @@ begin
      end
      else begin
        Aboard.Hash := Aboard.Hash xor FZobristSide;
-       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth+1, -INF, INF, path, 2);
+       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth - 1, -INF, INF, path, 2);
      end;
   end;
 

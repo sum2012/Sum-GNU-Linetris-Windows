@@ -2590,33 +2590,35 @@ begin
   begin
 //    d:=True;
     a:= movedlist.count-1;
+    if a < 0 then break;
 
-   if (copy(movedlist[a],1,7) = 'Redpass') and (copy(movedlist[a-1],1,9) <> 'Blackpass') then
+   if (a >= 1) and (copy(movedlist[a],1,7) = 'Redpass') and (copy(movedlist[a-1],1,9) <> 'Blackpass') then
        break;
-   if (copy(movedlist[a],1,9) = 'Blackpass') and (copy(movedlist[a-1],1,7) <> 'Redpass') then
+   if (a >= 1) and (copy(movedlist[a],1,9) = 'Blackpass') and (copy(movedlist[a-1],1,7) <> 'Redpass') then
        break;
    if a < 2 then break;
    if (copy(movedlist[a],1,7) <> 'Redpass') and (copy(movedlist[a],1,9) <> 'Blackpass') and (copy(movedlist[a-2],1,7) <> 'Redpass') and (copy(movedlist[a-2],1,9) <> 'Blackpass') Then
      break;
-    movedlist.Delete(movedlist.Count-1);
+    if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
 //    movedlist.Delete(movedlist.Count-1);
 //    StepListBox.items.Delete(StepListBox.count-1);
-    StepListBox.items.Delete(StepListBox.count-1);
+    if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
   end;
   a:=movedlist.Count-2;
   if a > -1 then
   begin
-    movedlist.Delete(movedlist.Count-1);
-    StepListBox.items.Delete(StepListBox.count-1);
+    if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
+    if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
   end;
-  if (GetCleanStep(StepListBox.items[StepListBox.count-1]) = 'Red pass') or (GetCleanStep(StepListBox.items[StepListBox.count-3]) = 'Black pass') then
+  if (StepListBox.items.count >= 1) and (GetCleanStep(StepListBox.items[StepListBox.count-1]) = 'Red pass') or
+     ((StepListBox.items.count >= 3) and (GetCleanStep(StepListBox.items[StepListBox.count-3]) = 'Black pass')) then
   begin
-   StepListBox.items.Delete(StepListBox.count-1);
-   StepListBox.items.Delete(StepListBox.count-1);
-   movedlist.Delete(movedlist.Count-1);
-   movedlist.Delete(movedlist.Count-1);
+   if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
+   if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
+   if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
+   if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
   end;
-   StepListBox.items.Delete(StepListBox.count-1);
+  if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
   redlist.Clear;
   blacklist.clear;
   if movedlist.Count > 0 Then
@@ -2650,7 +2652,7 @@ begin
       Makeclick(templist,'player2');
     end;
   end;
-  movedlist.Delete(movedlist.Count-1);
+  if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
   if StepListBox.items.Count < 2 then
     backbutton.Enabled:=False;
   a := 0; b := 0;

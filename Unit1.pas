@@ -279,6 +279,7 @@ type
     procedure HandleAIResult(const MoveName: string);
     procedure UpdateAIUI;
     procedure CallSyncUpdateAIUI(const AScore, ATime, AThinkStep: string; AClear, AAppend: Boolean);
+    procedure ClearTT;
     { Private declarations }
   private
     FAIWasRed: Boolean;
@@ -402,6 +403,14 @@ begin
   SetProcessWorkingSetSize(GetCurrentProcess, PtrUInt(-1), PtrUInt(-1));
 
   SetLength(FTranspositionTable, FTTSize);
+  ClearTT;
+end;
+
+procedure TForm1.ClearTT;
+var
+  i: Integer;
+begin
+  if FTranspositionTable = nil then Exit;
   for i := 0 to FTTSize - 1 do
   begin
     FTranspositionTable[i].Hash := 0;
@@ -1145,6 +1154,7 @@ begin
       RedChessClick(Img)
     else
       BlackChessClick(Img);
+    ClearTT;
   end;
 end;
 
@@ -1246,6 +1256,7 @@ begin
   notinback := True;
   FLastAIScore := '';
 
+  ClearTT;
   Updateboard;
 
   templist := TStringList.Create;

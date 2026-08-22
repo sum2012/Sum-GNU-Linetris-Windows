@@ -580,23 +580,17 @@ begin
       break;
 
     // Validate move
-    if (Entry.BestMove = -2) or (Entry.BestMove = 0) then break;
+    if (Entry.BestMove = -2) or (Entry.BestMove = 0) or (Entry.BestMove = -1) then break;
 
     PV.Moves[PV.Count] := Entry.BestMove;
     inc(PV.Count);
     inc(current_depth);
 
-    if Entry.BestMove = -1 then
-    begin
-      ABoard.Hash := ABoard.Hash xor FZobristSide;
-    end
+    if SideIsRed then
+      RedBoardUpdate(ABoard, Entry.BestMove)
     else
-    begin
-      if SideIsRed then
-        RedBoardUpdate(ABoard, Entry.BestMove)
-      else
-        BlackBoardUpdate(ABoard, Entry.BestMove);
-    end;
+      BlackBoardUpdate(ABoard, Entry.BestMove);
+
     SideIsRed := not SideIsRed;
   end;
 end;
@@ -637,14 +631,9 @@ function MoveToThinkStep(move: Integer): string;
 var
   c: Integer;
 begin
-  if move = -1 then
-    Result := 'PASS'
-  else
-  begin
-    c := move mod 8;
-    if c = 0 then c := 8;
-    Result := IntToStr(c);
-  end;
+  c := move mod 8;
+  if c = 0 then c := 8;
+  Result := IntToStr(c);
 end;
 
 function MoveArrayToThinkStep(const moves: TMoveArray): string;
@@ -1349,7 +1338,7 @@ begin
 
        SetLength(FParallelTasks, Length(FParallelTasks) + 1);
        FParallelTasks[High(FParallelTasks)].Move1 := templist.Moves[a];
-       FParallelTasks[High(FParallelTasks)].Move2 := -1; // PASS
+       FParallelTasks[High(FParallelTasks)].Move2 := -2; // No second move
        FParallelTasks[High(FParallelTasks)].Move1Idx := a;
        continue;
      end;
@@ -1366,7 +1355,7 @@ begin
 
        SetLength(FParallelTasks, Length(FParallelTasks) + 1);
        FParallelTasks[High(FParallelTasks)].Move1 := templist.Moves[a];
-       FParallelTasks[High(FParallelTasks)].Move2 := -1; // PASS
+       FParallelTasks[High(FParallelTasks)].Move2 := -2; // No second move
        FParallelTasks[High(FParallelTasks)].Move1Idx := a;
        continue;
      end;
@@ -1377,7 +1366,7 @@ begin
    begin
      SetLength(FParallelTasks, Length(FParallelTasks) + 1);
      FParallelTasks[High(FParallelTasks)].Move1 := templist.Moves[a];
-     FParallelTasks[High(FParallelTasks)].Move2 := -1; // PASS
+     FParallelTasks[High(FParallelTasks)].Move2 := -2; // No second move
      FParallelTasks[High(FParallelTasks)].Move1Idx := a;
    end
    else begin
@@ -1433,7 +1422,7 @@ begin
  bestmove := MoveArrayToThinkStep(move);
  CallSyncUpdateAIUI('', '', bestmove, False, False);
 
- if copy(bestmove, 1, 4) = 'PASS' then
+ if bestmove = '' then
    Result := ''
  else begin
    Result := 'Image' + IntToStr(move.Moves[0]);
@@ -1565,7 +1554,7 @@ begin
   path.Count := 1;
 
   Aboard:= board;
-  if move2 <> -1 then
+  if move2 > 0 then
   begin
     path.Moves[1] := move2;
     path.Count := 2;
@@ -1617,9 +1606,6 @@ begin
     end;
   end
   else begin
-     path.Moves[1] := -1; // PASS
-     path.Count := 2;
-
      if mutisideisRed = True then
        win := RedboardUpdate(Aboard,move1)
      Else
@@ -1631,8 +1617,7 @@ begin
        if v > 0 then mutitscore := -(v - 1) else mutitscore := -(v + 1);
      end
      else begin
-       Aboard.Hash := Aboard.Hash xor FZobristSide;
-       mutitscore := -MinMax(Aboard,mutiSideIsRed,mutidepth - 1, -INF, INF, path, 2);
+       mutitscore := EvaluateScore(Aboard, mutiSideIsRed);
      end;
   end;
 
@@ -1826,8 +1811,6 @@ begin
   if templist.Count > 0 then
   begin
     MakeClick(templist,'player2');
-    RedNoMove:=False;
-    BlackNoMove:=False;
     Updateboard;
     if HumanVsComputer.Checked then
     begin
@@ -1836,72 +1819,14 @@ begin
   end
   else
   begin
-    if notinback =False then
-      exit;
-    if FLastAIScore <> '' then
-      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass (' + FLastAIScore + ')')
-    else
-      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass');
-    FLastAIScore := '';
-    c:=movedlist.Add('Blackpass');
-    for a:=1 to 8 do
-      for b:=1 to 8 do
-      movedlist[c]:=movedlist[c]+intTostr(GetBoardPiece(board, a, b)+1);
-    if StepListBox.items.count > 1 then
-      backbutton.enabled:=True;
-    if RedNoMove = True then
-    begin
-      Updateboard;
-      score(board,a,b);
-      if a < b Then
-        ShowMessage('Both no more move,finish game'+#13+'Red win')
-      else if a > b then
-        ShowMessage('Both no more move,finish game'+#13+'Black win')
-      else if a = b then
-        ShowMessage('Both no more move,finish game'+#13+'Draw');
-    end
-    else begin
-      Updateboard;
-      templist.Clear;
-      if a+b <> 64 then
-        ShowMessage('Black no move');
-      MakeRedMove(board,templist);
-      if templist.Count > 0 then
-      begin
-        MakeClick(templist,'player1');
-        RedNoMove:=False;
-        BlackNoMove:=False;
-        Updateboard;
-//        if ComputerVsHuman.Checked = true then
-        if ComputerVsHuman.Checked then
-        begin
-          StartAI(True);
-        end;
-      end
-      else begin
-        if NotInBack = True then
-        begin
-          if FLastAIScore <> '' then
-            StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass (' + FLastAIScore + ')')
-          else
-            StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass');
-          FLastAIScore := '';
-          c:=movedlist.Add('Redpass');
-        for a:=1 to 8 do
-         for b:=1 to 8 do
-        movedlist[c]:=movedlist[c]+intTostr(GetBoardPiece(board, a, b)+1);
-        end;
-        if StepListBox.items.count > 1 then
-          backbutton.enabled:=True;
-        score(board,a,b);
-        if a < b Then
-          ShowMessage('Both no more move,finish game'+#13+'Red win')
-        else if a > b then
-          ShowMessage('Both no more move,finish game'+#13+'Black win')
-        else if a = b then
-          ShowMessage('Both no more move,finish game'+#13+'Draw');
-      end;
-    end;
+    Updateboard;
+    score(board,a,b);
+    if a < b Then
+      ShowMessage('Both no more move,finish game'+#13+'Red win')
+    else if a > b then
+      ShowMessage('Both no more move,finish game'+#13+'Black win')
+    else if a = b then
+      ShowMessage('Both no more move,finish game'+#13+'Draw');
   end;
   templist.Free;
 end;
@@ -2175,8 +2100,6 @@ begin
   MakeRedMove(board,templist);
   if templist.Count >0 then
   begin
-    RedNoMove:=False;
-    BlackNoMove:=False;
     MakeClick(templist,'player1');
     Updateboard;
 //    if ComputerVsHuman.Checked = true then
@@ -2186,70 +2109,15 @@ begin
     end;
   end
   else begin
-    if notinback =False then
-      exit;
-    if FLastAIScore <> '' then
-      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass (' + FLastAIScore + ')')
-    else
-      StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Red pass');
-    FLastAIScore := '';
-    c:=movedlist.Add('Red');
-    for a:=1 to 8 do
-     for b:=1 to 8 do
-    movedlist[c]:=movedlist[c]+intTostr(GetBoardPiece(board, a, b)+1);
-//may be correcteed
-    if RedNoMove = True then
-    begin
-      Updateboard;
-      score(board,a,b);
-      if a < b Then
-        ShowMessage('Both no more move,finish game'+#13+'Red win')
-      else if a > b then
-        ShowMessage('Both no more move,finish game'+#13+'Black win')
-      else if a = b then
-        ShowMessage('Both no more move,finish game'+#13+'Draw');
-    end
-    else begin
-      Updateboard;
-      if a+b <> 64 then
-        ShowMessage('Red pass');
-      templist.clear;
-      MakeBlackMove(board,templist);
-      if templist.Count > 0 then
-      begin
-        MakeClick(templist,'player2');
-        RedNoMove:=False;
-        BlackNoMove:=False;
-       Updateboard;
-
-        if HumanVsComputer.Checked then
-        begin
-          StartAI(False);
-        end;
-      end
-      else begin
-      if NotInback = True then
-      begin
-        if FLastAIScore <> '' then
-          StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass (' + FLastAIScore + ')')
-        else
-          StepListBox.Items.Add(IntToStr(StepListBox.Items.Count + 1) + ': Black pass');
-        FLastAIScore := '';
-        c:=movedlist.Add('Black');
-        for a:=1 to 8 do
-         for b:=1 to 8 do
-        movedlist[c]:=movedlist[c]+intTostr(GetBoardPiece(board, a, b)+1);
-      end;
-      score(board,a,b);
-      //corrected
-      if a < b Then
-        ShowMessage('Both no more move,finish game'+#13+'Red win')
-      else if a > b then
-        ShowMessage('Both no more move,finish game'+#13+'Black win')
-      else if a = b then
-        ShowMessage('Both no more move,finish game'+#13+'Draw');
-      end;
-    end;
+    Updateboard;
+    score(board,a,b);
+    //corrected
+    if a < b Then
+      ShowMessage('Both no more move,finish game'+#13+'Red win')
+    else if a > b then
+      ShowMessage('Both no more move,finish game'+#13+'Black win')
+    else if a = b then
+      ShowMessage('Both no more move,finish game'+#13+'Draw');
   end;
   templist.Free;
 end;
@@ -2494,13 +2362,6 @@ begin
           MakeClick(templist,'player1');
           RedChessClick(Timage(FindComponent('Image'+intTostr(8*d+c-8))));
           StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
-        end
-        else begin
-          e:=movedlist.Add('Redpass');
-          for c:=1 to 8 do
-          for d:=1 to 8 do
-          movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
-          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end;
       end
       else if copy(a,1,5) = 'Black' then
@@ -2517,13 +2378,6 @@ begin
           MakeBlackMove(board,templist);
           MakeClick(templist,'player2');
           BlackChessClick(Timage(FindComponent('Image'+intTostr(8*d+c-8))));
-          StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
-        end
-        else begin
-          e:=movedlist.Add('Blackpass');
-          for c:=1 to 8 do
-          for d:=1 to 8 do
-          movedlist[e]:=movedlist[e]+intTostr(GetBoardPiece(board, c, d)+1);
           StepListbox.Items.Add(IntToStr(StepListbox.Items.Count + 1) + ': ' + a);
         end;
       end;
@@ -2586,47 +2440,13 @@ begin
     FAIThread := nil;
   end;
  templist:= Tstringlist.Create;
-  While true do
-  begin
-//    d:=True;
-    a:= movedlist.count-1;
-    if a < 0 then break;
 
-   if (a >= 1) and (copy(movedlist[a],1,7) = 'Redpass') and (copy(movedlist[a-1],1,9) <> 'Blackpass') then
-       break;
-   if (a >= 1) and (copy(movedlist[a],1,9) = 'Blackpass') and (copy(movedlist[a-1],1,7) <> 'Redpass') then
-       break;
-   if a < 2 then break;
-   if (copy(movedlist[a],1,7) <> 'Redpass') and (copy(movedlist[a],1,9) <> 'Blackpass') and (copy(movedlist[a-2],1,7) <> 'Redpass') and (copy(movedlist[a-2],1,9) <> 'Blackpass') Then
-     break;
-    if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
-//    movedlist.Delete(movedlist.Count-1);
-//    StepListBox.items.Delete(StepListBox.count-1);
-    if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
-  end;
-  a:=movedlist.Count-2;
-  if a > -1 then
-  begin
-    if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
-    if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
-  end;
-  if (StepListBox.items.count >= 1) and (GetCleanStep(StepListBox.items[StepListBox.count-1]) = 'Red pass') or
-     ((StepListBox.items.count >= 3) and (GetCleanStep(StepListBox.items[StepListBox.count-3]) = 'Black pass')) then
-  begin
-   if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
-   if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
-   if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
-   if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
-  end;
-  if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
-  redlist.Clear;
-  blacklist.clear;
-  if movedlist.Count > 0 Then
+  if movedlist.Count > 0 then
   begin
     if copy(movedlist[movedlist.Count-1],1,3) = 'Red' Then
-      a:=3//4
+      a:=3
     else
-      a:=5;//6
+      a:=5;
     for b:=1 to 8 do
     for c:=1 to 8 do
       SetBoardPiece(board, b, c, strToint(copy(movedlist[movedlist.Count-1],8*b-8+a+c,1))-1);
@@ -2639,6 +2459,8 @@ begin
       MakeBlackMove(board,templist);
       Makeclick(templist,'player2');
     end;
+    movedlist.Delete(movedlist.Count-1);
+    if StepListBox.items.count > 0 then StepListBox.items.Delete(StepListBox.count-1);
   end
   else begin
     board:=initboard;
@@ -2652,7 +2474,7 @@ begin
       Makeclick(templist,'player2');
     end;
   end;
-  if movedlist.Count > 0 then movedlist.Delete(movedlist.Count-1);
+
   if StepListBox.items.Count < 2 then
     backbutton.Enabled:=False;
   a := 0; b := 0;
@@ -2766,15 +2588,7 @@ begin
 
   if moves.Count = 0 then
   begin
-    if SideIsRed then FastMakeBlackMove(Aboard, moves)
-    else FastMakeRedMove(Aboard, moves);
-
-    aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
-    inc(aithinkstep.Count);
-    Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, Ply + 1);
-    StoreTT(h, depth, value, TT_EXACT, -1, Ply);
-    Result := value;
+    Result := EvaluateScore(Aboard, SideIsRed);
     exit;
   end;
 
@@ -2913,21 +2727,7 @@ begin
 
   if moves.Count = 0 then
   begin
-    if SideIsRed then FastMakeBlackMove(Aboard, moves)
-    else FastMakeRedMove(Aboard, moves);
-
-    if moves.Count = 0 then // both red and black no move
-    begin
-      Result := EvaluateScore(Aboard, SideIsRed);
-      exit;
-    end;
-    oldaithinkstep := aithinkstep;
-    aithinkstep.Moves[aithinkstep.Count] := -1; // PASS
-    inc(aithinkstep.Count);
-    Aboard.Hash := Aboard.Hash xor FZobristSide;
-    value := -MinMax(Aboard, Not SideIsRed, depth, -beta, -alpha, aithinkstep, Ply + 1);
-    StoreTT(h, depth, value, TT_EXACT, -1, Ply);
-    Result := value;
+    Result := EvaluateScore(Aboard, SideIsRed);
     exit;
   end;
 
@@ -3140,21 +2940,7 @@ begin
 
   if moves.Count = 0 then
   begin
-    if SideIsRed then FastMakeBlackMove(Aboard, moves)
-    else FastMakeRedMove(Aboard, moves);
-
-    if moves.Count = 0 then
-    begin
-      Result := EvaluateScore(Aboard, SideIsRed);
-      exit;
-    end;
-
-    current_path := aithinkstep;
-    current_path.Moves[current_path.Count] := -1; // PASS
-    inc(current_path.Count);
-    Aboard.Hash := Aboard.Hash xor FZobristSide;
-    Result := -MinMaxStart(Aboard, Not SideIsRed, depth, -beta, -alpha, current_path, Ply + 1);
-    aithinkstep := current_path;
+    Result := EvaluateScore(Aboard, SideIsRed);
     exit;
   end;
 
@@ -3273,9 +3059,7 @@ begin
 
   // 1. Restore board from movedlist[targetIdx + 1]
   nextTurn := movedlist[targetIdx + 1];
-  if copy(nextTurn, 1, 9) = 'Blackpass' then a := 9
-  else if copy(nextTurn, 1, 7) = 'Redpass' then a := 7
-  else if copy(nextTurn, 1, 5) = 'Black' then a := 5
+  if copy(nextTurn, 1, 5) = 'Black' then a := 5
   else if copy(nextTurn, 1, 3) = 'Red' then a := 3
   else Exit;
 
@@ -3283,7 +3067,7 @@ begin
     for c := 1 to 8 do
       SetBoardPiece(board, b, c, StrToInt(copy(nextTurn, 8*b-8+a+c, 1)) - 1);
 
-  board.Hash := CalculateHash(board, (copy(nextTurn, 1, 3) = 'Red') or (copy(nextTurn, 1, 7) = 'Redpass'));
+  board.Hash := CalculateHash(board, copy(nextTurn, 1, 3) = 'Red');
 
   // 2. Truncate history
   while StepListBox.Items.Count > targetIdx + 1 do
@@ -3293,7 +3077,7 @@ begin
 
   // 3. Update UI and recalculate moves
   templist := TStringList.Create;
-  if (copy(nextTurn, 1, 3) = 'Red') or (copy(nextTurn, 1, 7) = 'Redpass') then
+  if copy(nextTurn, 1, 3) = 'Red' then
   begin
     MakeRedMove(board, templist);
     MakeClick(templist, 'player1');
@@ -3316,11 +3100,11 @@ begin
   // 4. Trigger AI if necessary
   if ComputerVsHuman.Checked and (templist.Count > 0) then
   begin
-    if (copy(nextTurn, 1, 3) = 'Red') or (copy(nextTurn, 1, 7) = 'Redpass') then StartAI(True);
+    if copy(nextTurn, 1, 3) = 'Red' then StartAI(True);
   end;
   if HumanVsComputer.Checked and (templist.Count > 0) then
   begin
-    if (copy(nextTurn, 1, 5) = 'Black') or (copy(nextTurn, 1, 9) = 'Blackpass') then StartAI(False);
+    if copy(nextTurn, 1, 5) = 'Black' then StartAI(False);
   end;
 
   templist.Free;
@@ -3353,21 +3137,13 @@ begin
        t := copy(h,5,3)
      else if copy(h,1,5) = 'Black'  then
        t := copy(h,7,3);
-     if a =  StepListBox.Count - 2 then
-     begin
-       if (GetCleanStep(StepListBox.items[a]) = 'Red pass') and (GetCleanStep(StepListBox.items[a+1]) = 'Black pass') or (GetCleanStep(StepListBox.items[a]) = 'Black pass') and (GetCleanStep(StepListBox.items[a+1]) = 'Red pass') then
-         break;
-     end;
-     if copy(t,1,1) = 'p' then
-        s:=s + ' P'
-     Else begin
-       u:= copy(t,1,1);
-       t:= copy(t,3,1);
-       if a = 0 then
-          s := char(strtoint(u)+64)+t
-       else
-         s := s+ ' '+char(strtoint(u)+64)+t;
-     end;
+
+     u:= copy(t,1,1);
+     t:= copy(t,3,1);
+     if a = 0 then
+        s := char(strtoint(u)+64)+t
+     else
+       s := s+ ' '+char(strtoint(u)+64)+t;
 
    end;
 
